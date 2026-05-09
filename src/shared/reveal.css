@@ -181,10 +181,13 @@
   100% { opacity: 1; transform: scale(1); }
 }
 
-/* Per-particle dot. Soft warm-white core with a layered amber halo
-   so each dot reads as a glowing mote, not a flat circle. Default
-   color is gold-on-warm-white; --skit-swarm-color (RGB triplet
-   without alpha) lets a section override the halo to match brand. */
+/* Per-particle dot. Bright warm-white core with a layered amber halo
+   so each dot reads as a glowing mote on any background. Default
+   color is warm-white-with-amber-glow; --skit-swarm-color (RGB
+   triplet without alpha) overrides the halo to match brand accent.
+   No blend mode — pure additive layering would wash out on light
+   backgrounds, multiply would disappear on dark. The radial-gradient
+   core stays bright either way. */
 .skit-reveal-swarm-particle {
   position: absolute;
   left: 50%;
@@ -192,22 +195,18 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(255, 247, 214, 1) 0%,
-    rgba(255, 235, 170, 0.85) 40%,
-    rgba(245, 215, 110, 0.5) 80%,
+    rgba(255, 251, 235, 1) 0%,
+    rgba(255, 235, 175, 0.95) 35%,
+    rgba(245, 215, 110, 0.55) 75%,
     rgba(245, 215, 110, 0) 100%
   );
   box-shadow:
     0 0 4px 0 rgba(var(--skit-swarm-color, 245 215 110), 0.85),
-    0 0 12px 2px rgba(var(--skit-swarm-color, 245 215 110), 0.45),
-    0 0 28px 6px rgba(var(--skit-swarm-color, 245 215 110), 0.18);
+    0 0 14px 2px rgba(var(--skit-swarm-color, 245 215 110), 0.5),
+    0 0 32px 8px rgba(var(--skit-swarm-color, 245 215 110), 0.22);
   pointer-events: none;
   will-change: transform, opacity;
   opacity: 0;
-  /* mix-blend-mode: screen makes dots glow against any background
-     (light text on dark sections still pops, dark text on light
-     sections gets a subtle halo without washing out). */
-  mix-blend-mode: screen;
 }
 .skit-reveal-swarm.in-view .skit-reveal-swarm-particle {
   animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.22, 1, 0.36, 1) both;
