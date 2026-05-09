@@ -153,64 +153,60 @@
 }
 
 /* ============================================================
-   SWARM — PowerPoint-style "particle assembly" reveal. Tiny flat
-   shards (4-7px squares with hint of corner-rounding) spawn outside
-   the section, spin in on a gentle curve, and SETTLE at unique
-   grid-tiled destinations covering the whole section.
+   SWARM — tile-mosaic "page builds tile-by-tile" reveal.
 
-   Critical timing: the section content fades in WITH the settling
-   particles (not after them) so the page reads as being assembled
-   from the swarm. Particles aren't decoration arriving on top of
-   an already-revealed page; they're the material the page is built
-   from. By the end they've dissolved into the page.
+   Each shard flies in to a unique cell of a 14×9 grid covering the
+   section. At its destination, it GROWS to fill its cell (scale
+   ~14x in width and ~10x in height — produces ~110×80px tiles for
+   a 7-9px shard), creating a complete mosaic that briefly COVERS
+   the section. Then the tiles dissolve in stagger order, revealing
+   the page tile-by-tile in a wave — NOT a global page fade.
 
-   Why shards (not glowing orbs): orbs read as "magical decoration".
-   Small flat squares with rotation read as "pieces of the page
-   being placed". PPT's "Particle" entrance uses this exact shape.
+   Net visual: 1 shard = 1 tile of the page. The page emerges
+   tile-by-tile through the dissolving mosaic, not as a separate
+   crossfade. Stagger order (set per-particle in swarm-reveal.tsx)
+   creates a wave of dissolves across the section.
 
-   --skit-swarm-color (RGB triplet) overrides the shard color to
-   match brand accent. Default is a neutral warm-white that shows
-   on most backgrounds without screaming "decoration".
+   --skit-swarm-color (RGB triplet) overrides the tile color to
+   match brand. Default is warm cream — visible enough to show as
+   a mosaic on white sections, contrasts on dark.
    ============================================================ */
 
-/* Section wrapper itself stays at opacity 1 — we DON'T fade the
-   wrapper because that would also hide the in-flight shards (children
-   of section get parent's opacity multiplied). Instead we target the
-   non-particle direct children for the content fade, so shards stay
-   visible during their entire fly-in. */
 .skit-reveal-swarm {
-  /* No animation on the section — content children + particles each
-     animate independently. */
+  /* Page content stays at opacity 1 — tiles are doing the masking.
+     A short opacity-0→1 ramp at the start hides any unstyled flash
+     while the swarm is mid-flight (tiles haven't started growing
+     yet so the page would otherwise be visible). */
 }
 .skit-reveal-swarm > :not(.skit-reveal-swarm-particle) {
   opacity: 0;
   will-change: opacity;
 }
 .skit-reveal-swarm.in-view > :not(.skit-reveal-swarm-particle) {
-  animation: skit-reveal-swarm-content calc(var(--skit-motion-dur, 700ms) * 3.5) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: skit-reveal-swarm-content calc(var(--skit-motion-dur, 700ms) * 3.5) linear both;
 }
-/* Page reveals WHILE shards dissolve (50%-90%). Critically: by the
-   time the page is fully visible (90%+), shards are already gone.
-   No "decorative particles on top of finished page" overlap. */
+/* Page becomes visible at 50% — tiles are arriving and growing at
+   the same time, so the page appears UNDERNEATH the mosaic.
+   Tiles 60-85% completely cover the section; 85-100% they dissolve
+   in stagger order revealing the tile-by-tile build. */
 @keyframes skit-reveal-swarm-content {
   0%   { opacity: 0; }
   50%  { opacity: 0; }
-  90%  { opacity: 1; }
+  60%  { opacity: 1; }
   100% { opacity: 1; }
 }
 
-/* Per-particle shard. Visible-by-default gold (#D4AF37) with a
-   subtle dark drop-shadow so it shows on light AND dark backgrounds.
-   Solid color + small size + corner-rounding reads as a chunk of
-   content, not a glow orb. --skit-swarm-color (RGB triplet) lets
-   sections override for brand-matched accents. */
+/* Per-particle shard. Solid warm-cream by default with a thin gold
+   border + drop-shadow so each tile reads as a piece of the page
+   being placed. When grown via the keyframe, becomes a ~110×80px
+   tile that briefly covers its cell of the section. */
 .skit-reveal-swarm-particle {
   position: absolute;
   border-radius: 1px;
-  background: rgb(var(--skit-swarm-color, 212 175 55));
+  background: rgb(var(--skit-swarm-color, 250 240 215));
   box-shadow:
-    0 0 0 0.5px rgba(0, 0, 0, 0.15),
-    0 1px 3px 0 rgba(0, 0, 0, 0.25);
+    0 0 0 0.5px rgba(var(--skit-swarm-color, 180 150 80), 0.5),
+    0 1px 3px 0 rgba(0, 0, 0, 0.18);
   pointer-events: none;
   will-change: transform, opacity;
   opacity: 0;
@@ -219,38 +215,43 @@
   animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 3.5) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes skit-reveal-swarm-particle {
-  /* Spawn — invisible, far outside the section, mid-rotation. */
+  /* Spawn — invisible, outside section, mid-rotation. */
   0% {
     transform: translate(var(--sx, 0), var(--sy, 0)) rotate(var(--p-rot-start, 0deg)) scale(0.6);
     opacity: 0;
   }
-  /* Fade-in as the shard starts its flight. */
+  /* Fade in during flight. */
   10% {
     transform: translate(calc(var(--sx, 0) * 0.9), calc(var(--sy, 0) * 0.9)) rotate(calc(var(--p-rot-start, 0deg) * 0.85)) scale(0.85);
-    opacity: var(--p-opacity, 0.75);
+    opacity: 0.85;
   }
-  /* MID-ARC — gentle curve through perpendicular waypoint. */
+  /* MID-ARC — gentle curve waypoint, partial un-spin. */
   45% {
     transform: translate(var(--mx, 0), var(--my, 0)) rotate(calc(var(--p-rot-start, 0deg) * 0.3)) scale(1);
-    opacity: var(--p-opacity, 0.75);
+    opacity: 0.95;
   }
-  /* ARRIVE — shard reaches destination, rotation back to 0,
-     full size. This is the "delivered" moment. */
-  62% {
+  /* ARRIVE — at destination, normal size. The "delivered" moment. */
+  60% {
     transform: translate(0, 0) rotate(0deg) scale(1);
-    opacity: var(--p-opacity, 0.75);
+    opacity: 1;
   }
-  /* DISSIPATE — once arrived, shard dissolves in place over the
-     remaining 40% of timeline. Slight scale-up makes it feel like
-     a puff of dust dispersing rather than just vanishing. By 90%
-     it's faded to ~0 — the page is reaching full opacity at the
-     same time, so the swarm "transforms into" the page. */
-  85% {
-    transform: translate(0, 0) rotate(0deg) scale(1.25);
-    opacity: 0.15;
+  /* GROW — expand to fill cell. scale(15) on a 7-9px shard
+     yields ~110×80px tile, approximating a 14×9 grid cell of a
+     standard hero-sized section. */
+  68% {
+    transform: translate(0, 0) rotate(0deg) scale(15);
+    opacity: 1;
   }
+  /* HOLD — full tile coverage. Page is now visible underneath but
+     covered by the tile mosaic. */
+  82% {
+    transform: translate(0, 0) rotate(0deg) scale(15);
+    opacity: 1;
+  }
+  /* DISSOLVE — tile fades, revealing its piece of the page. The
+     stagger across particles creates a wave of reveals. */
   100% {
-    transform: translate(0, 0) rotate(0deg) scale(1.4);
+    transform: translate(0, 0) rotate(0deg) scale(15);
     opacity: 0;
   }
 }
