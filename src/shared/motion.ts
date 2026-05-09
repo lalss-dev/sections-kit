@@ -1,3 +1,6 @@
+import type React from "react";
+import { SWARM_SEEDS, spawnSwarmButterflies } from "./swarm-reveal.js";
+
 // motion_intensity — one knob that scales reveal-on-scroll animations
 // across every kit section. Lives at the page-level (consumers stamp
 // it on their root container) AND at the per-section level (per-section
@@ -173,20 +176,11 @@ export function playRevealPreview(
         { duration, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
       );
     case "swarm":
-      // Editor preview doesn't render the 30 butterfly sprites
-      // (those only mount on the live page when reveal === "swarm"),
-      // so the demo here is a stand-in: a slow scale-in with tiny
-      // upward drift. The actual butterfly converge plays on the live
-      // render. Keeps the chip "feel responsive" without spinning up
-      // 30 SVG nodes mid-edit.
-      return (el as HTMLElement).animate(
-        [
-          { offset: 0,   opacity: 0, transform: `translateY(${y}px) scale(0.94)` },
-          { offset: 0.6, opacity: 0, transform: "translateY(2px) scale(0.97)" },
-          { offset: 1,   opacity: 1, transform: "translateY(0) scale(1)" },
-        ],
-        { duration: duration * 1.4, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
-      );
+      // Mount 30 butterfly sprites on the section, run the converge
+      // animation per-particle via WAAPI, then clean up. This makes
+      // the chip-pick demo show the actual "thousand butterflies
+      // become one" effect (same shape as the live render).
+      return playSwarmDemo(el as HTMLElement, duration);
     default:
       return null;
   }
@@ -264,7 +258,81 @@ export function motionStyle(
 export const MOTION_SPEED_MS = SPEED_MS;
 export const MOTION_INTENSITY_Y = INTENSITY_Y;
 
-// Empty type import so React's CSSProperties is in scope for motionStyle().
-// We intentionally avoid `import type * from "react"` since the kit is
-// peer-deps-on-react.
-import type React from "react";
+// Editor-side demo for the swarm reveal. Spawns 30 butterfly sprites
+// inside `el`, animates each via WAAPI (same keyframes as the live
+// .skit-reveal-swarm-particle CSS), then removes the sprites once the
+// animation settles. Returns a no-op Animation handle so the
+// playRevealPreview signature stays compatible.
+//
+// Why WAAPI per-particle instead of toggling the .in-view class?
+// In the editor preview, the section may not have the
+// .skit-reveal-swarm class on it (revealCls is suppressed in
+// previewMode to avoid the "outside box" effect). WAAPI is
+// independent — works regardless of CSS class state. We also briefly
+// swap the section's position to "relative" so the absolute-
+// positioned sprites anchor to the section bounds.
+export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation | null {
+  if (typeof document === "undefined") return null;
+  if (typeof (el as HTMLElement).animate !== "function") return null;
+  const swarmDur = Math.max(1200, baseDuration * 1.6);
+
+  // Anchor for absolute children. Restore on cleanup.
+  const prevPos = el.style.position;
+  if (getComputedStyle(el).position === "static") el.style.position = "relative";
+
+  const cleanup = spawnSwarmButterflies(el);
+  let lastAnim: Animation | null = null;
+
+  for (let i = 0; i < SWARM_SEEDS.length; i++) {
+    const seed = SWARM_SEEDS[i];
+    const sprite = el.querySelectorAll<HTMLElement>(".skit-reveal-swarm-particle")[i];
+    if (!sprite) continue;
+    const a = sprite.animate(
+      [
+        { offset: 0,    opacity: 0,    transform: `translate(${seed.sx}, ${seed.sy}) rotate(${seed.sr}) scale(1)` },
+        { offset: 0.12, opacity: 0.95, transform: `translate(calc(${seed.sx} * 0.95), calc(${seed.sy} * 0.95)) rotate(calc(${seed.sr} * 0.92)) scale(1)` },
+        { offset: 0.7,  opacity: 0.85, transform: `translate(calc(${seed.sx} * 0.18), calc(${seed.sy} * 0.18)) rotate(calc(${seed.sr} * 0.2)) scale(0.78)` },
+        { offset: 0.88, opacity: 0.5,  transform: `translate(0, 0) rotate(0deg) scale(0.32)` },
+        { offset: 1,    opacity: 0,    transform: `translate(0, 0) rotate(0deg) scale(0)` },
+      ],
+      {
+        duration: swarmDur,
+        delay: seed.delay * 1000,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        fill: "forwards",
+      },
+    );
+    lastAnim = a;
+  }
+
+  // Section content fades in mid-swarm — match keyframes in CSS so the
+  // demo feels identical to the live render.
+  const sectionAnim = (el as HTMLElement).animate(
+    [
+      { offset: 0,    opacity: 0, transform: "scale(0.96)" },
+      { offset: 0.55, opacity: 0, transform: "scale(0.98)" },
+      { offset: 0.85, opacity: 1, transform: "scale(1)" },
+      { offset: 1,    opacity: 1, transform: "scale(1)" },
+    ],
+    { duration: swarmDur, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+  );
+
+  // Cleanup once the longest tail finishes. Fall back to setTimeout if
+  // the animation handle is null (shouldn't be).
+  const finishTimer = setTimeout(() => {
+    cleanup();
+    if (prevPos) el.style.position = prevPos;
+    else el.style.removeProperty("position");
+  }, swarmDur + 600);
+
+  // If something cancels the section animation, still clean up.
+  sectionAnim.addEventListener("cancel", () => {
+    clearTimeout(finishTimer);
+    cleanup();
+    if (prevPos) el.style.position = prevPos;
+    else el.style.removeProperty("position");
+  });
+
+  return lastAnim ?? sectionAnim;
+}
+

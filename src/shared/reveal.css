@@ -22,6 +22,11 @@
    MODERN PATH — scroll-driven animations
    ============================================================ */
 
+/* Scroll-driven path covers the basic reveals + glitch/magnetic/ripple.
+ * Swarm is intentionally NOT here — see "swarm" section below. The
+ * butterfly converge is a one-shot moment, so it runs JS-driven via
+ * the IntersectionObserver `.in-view` class; sections already in view
+ * at page load still get the effect. */
 @supports (animation-timeline: view()) {
   .skit-reveal-fade-up,
   .skit-reveal-fade-down,
@@ -31,8 +36,7 @@
   .skit-reveal-blur-in,
   .skit-reveal-glitch,
   .skit-reveal-magnetic,
-  .skit-reveal-ripple,
-  .skit-reveal-swarm {
+  .skit-reveal-ripple {
     animation: linear both;
     animation-timeline: view();
     animation-range: entry 10% cover 35%;
@@ -50,8 +54,6 @@
                             /* elastic overshoot easing */
                             animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
   .skit-reveal-ripple     { animation-name: skit-reveal-ripple;
-                            animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
-  .skit-reveal-swarm      { animation-name: skit-reveal-swarm;
                             animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
 }
 
@@ -131,20 +133,36 @@
   to   { opacity: 1; clip-path: circle(150% at 50% 50%); }
 }
 
-/* SWARM — section content fades in late while the host renders 30
-   butterfly particles overlaid on top. The overlay particles have
-   their own keyframe (skit-reveal-swarm-particle) defined below.
-   Section content is delayed so it appears AFTER particles converge. */
+/* SWARM — JS-driven, one-shot. Stays out of the scroll-driven block
+   above so it ALWAYS plays once when the section enters the viewport
+   (or on page load if it's already visible) — not tied to scroll
+   position. Trigger: IntersectionObserver adds `.in-view` to the
+   section; CSS keyframes below run on the `.in-view` state.
+   --skit-swarm-dur is overridable per-section; default 1800ms gives
+   the converge enough room to feel like a "thousand butterflies
+   become one". */
+.skit-reveal-swarm {
+  /* Section content fades in mid-animation, after particles have
+     mostly converged. Holds at opacity 0 for the first 50% so the
+     focal point is the swarm. */
+  opacity: 0;
+  transform: scale(0.96);
+  will-change: opacity, transform;
+}
+.skit-reveal-swarm.in-view {
+  animation: skit-reveal-swarm var(--skit-swarm-dur, 1800ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
 @keyframes skit-reveal-swarm {
-  0%   { opacity: 0; transform: scale(0.94); }
-  60%  { opacity: 0; transform: scale(0.97); }
+  0%   { opacity: 0; transform: scale(0.96); }
+  55%  { opacity: 0; transform: scale(0.98); }
+  85%  { opacity: 1; transform: scale(1); }
   100% { opacity: 1; transform: scale(1); }
 }
 
-/* Per-particle converge animation (used by SwarmRevealOverlay's
-   inline children). Each particle has --sx / --sy custom properties
-   set inline to a random off-section position; this keyframe drives
-   them from there to (0, 0) while shrinking + fading. */
+/* Per-particle converge animation. Each butterfly span has --sx / --sy
+   custom properties set inline to a random off-section position;
+   keyframes drive them from there to (0, 0) while fading and shrinking
+   to nothing as the section content takes over. */
 .skit-reveal-swarm-particle {
   position: absolute;
   left: 50%;
@@ -155,40 +173,40 @@
   margin-top: -12px;
   pointer-events: none;
   will-change: transform, opacity;
+  opacity: 0;
 }
-@supports (animation-timeline: view()) {
-  .skit-reveal-swarm-particle {
-    animation: skit-reveal-swarm-particle linear both;
-    animation-timeline: view();
-    animation-range: entry 10% cover 35%;
-  }
-}
-@supports not (animation-timeline: view()) {
-  .skit-reveal-swarm.in-view .skit-reveal-swarm-particle {
-    animation: skit-reveal-swarm-particle var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
+.skit-reveal-swarm.in-view .skit-reveal-swarm-particle {
+  animation: skit-reveal-swarm-particle var(--skit-swarm-dur, 1800ms) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes skit-reveal-swarm-particle {
-  0%, 60% {
+  0% {
     transform: translate(var(--sx, 0), var(--sy, 0)) rotate(var(--sr, 0deg)) scale(1);
-    opacity: 0.85;
+    opacity: 0;
   }
-  85% {
-    opacity: 0.6;
-    transform: translate(0, 0) rotate(0deg) scale(0.4);
+  12% {
+    opacity: 0.95;
+    transform: translate(calc(var(--sx, 0) * 0.95), calc(var(--sy, 0) * 0.95)) rotate(calc(var(--sr, 0deg) * 0.92)) scale(1);
+  }
+  70% {
+    opacity: 0.85;
+    transform: translate(calc(var(--sx, 0) * 0.18), calc(var(--sy, 0) * 0.18)) rotate(calc(var(--sr, 0deg) * 0.2)) scale(0.78);
+  }
+  88% {
+    opacity: 0.5;
+    transform: translate(0, 0) rotate(0deg) scale(0.32);
   }
   100% {
     opacity: 0;
-    transform: translate(0, 0) rotate(0deg) scale(0.1);
+    transform: translate(0, 0) rotate(0deg) scale(0);
   }
 }
 .skit-reveal-swarm-particle .skit-reveal-swarm-wings {
   transform-origin: 50% 50%;
-  animation: skit-reveal-swarm-flap 0.22s ease-in-out infinite alternate;
+  animation: skit-reveal-swarm-flap 0.18s ease-in-out infinite alternate;
 }
 @keyframes skit-reveal-swarm-flap {
   from { transform: rotateY(0deg)  scale(1, 1); }
-  to   { transform: rotateY(60deg) scale(0.55, 1); }
+  to   { transform: rotateY(70deg) scale(0.5, 1); }
 }
 
 /* ============================================================
@@ -222,7 +240,6 @@
   .skit-reveal-magnetic   { transform: translateY(calc(var(--skit-motion-y, 14px) * 2.5)) scale(0.85); transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
   .skit-reveal-ripple     { clip-path: circle(0% at 50% 50%); }
   .skit-reveal-glitch     { opacity: 0; }
-  .skit-reveal-swarm      { opacity: 0; transform: scale(0.94); }
 
   .skit-reveal-fade-up.in-view,
   .skit-reveal-fade-down.in-view,
@@ -241,10 +258,10 @@
     opacity: 1;
     clip-path: circle(150% at 50% 50%);
   }
-  /* Glitch + swarm fallback: just fade in (the dramatic version
-     requires animation-timeline). */
-  .skit-reveal-glitch.in-view,
-  .skit-reveal-swarm.in-view {
+  /* Glitch fallback: just fade in (the dramatic version requires
+     animation-timeline). Swarm uses the same .in-view path on every
+     browser — its own CSS block above handles all the keyframes. */
+  .skit-reveal-glitch.in-view {
     opacity: 1;
     transform: none;
   }
