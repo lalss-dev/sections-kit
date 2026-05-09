@@ -1,80 +1,79 @@
-// SwarmRevealOverlay — premium reveal helper. Renders ~96 soft glowing
-// dots distributed UNIFORMLY across the section's bounds, each
-// arriving from outside via a curved arc. The section content fades
-// in *behind* the swarm as particles settle into their tiled
-// destinations, then particles dissolve — reads as "the page is
-// being built by the swarm" rather than "bugs converging to one
-// spot in the middle".
+// SwarmRevealOverlay — PowerPoint-style "particle assembly" reveal.
+// Each particle is a small flat shard (4-7px) that spawns far from
+// its destination, flies in on a slight curve while spinning, and
+// SETTLES at a unique grid-tiled destination across the section.
+// The section content fades in WITH the settling particles (not
+// after), so the page reads as being assembled BY the swarm —
+// particles aren't decoration arriving on top of an already-reveald
+// page; they're the material the page is built from.
 //
-// How distribution works:
-//   1. Section is sliced into a 12×8 = 96-cell grid.
-//   2. Each particle gets one cell + jitter within that cell, so
-//      destinations cover the entire section evenly without clumps.
-//   3. Each particle's element has top/left set inline to its
-//      destination (in % of the section).
-//   4. CSS keyframes drive transform from spawn offset → curved
-//      midpoint → translate(0,0) (which IS the destination).
+// Why shards (small squares with hint of rounding) and not glowing
+// orbs: orbs read as "magical decoration"; shards with rotation read
+// as "pieces of the page being placed". PPT's "Particle" entrance
+// uses tiny image fragments for exactly this reason.
 //
-// Hosts call this conditionally when section.reveal === "swarm" so
-// the DOM cost only hits sections that opted in. SWARM_SEEDS +
-// spawnSwarmParticles are also exported so the editor (motion.ts →
-// playRevealPreview / playSwarmDemo) can spawn the same shapes via
-// plain DOM during chip-pick demos.
+// Each particle has unique:
+//   - destination (12×8 grid + jitter, covers full section)
+//   - spawn offset (random angle 45-80vmin from destination)
+//   - mid-arc waypoint (gentle curve, not a swirl)
+//   - rotation start + end (spins 180-720° during flight, lands at 0)
+//   - opacity (dim majority, with bright accents for depth)
+//   - delay (0-450ms wave so particles arrive in waves)
 
-const COLS = 12;
-const ROWS = 8;
+const COLS = 14;
+const ROWS = 9;
 const SWARM_COUNT = COLS * ROWS;
 
 export type SwarmSeed = {
-  sx: string;        // spawn offset x relative to destination (vmin)
-  sy: string;        // spawn offset y relative to destination (vmin)
+  sx: string;        // spawn offset x (vmin) relative to destination
+  sy: string;        // spawn offset y (vmin)
   mx: string;        // curved-arc midpoint offset x (vmin)
   my: string;        // curved-arc midpoint offset y (vmin)
   dxPercent: number; // destination x as % of section width
   dyPercent: number; // destination y as % of section height
-  size: number;      // px (3..6)
+  size: number;      // px (4..7)
   opacity: number;   // peak opacity (0..1)
-  delay: number;     // seconds — small per-particle stagger
+  rotateStart: number; // deg — initial rotation while flying
+  delay: number;     // seconds
 };
 
-// Deterministic seed list so SSR + client renders match. The math is
-// a cheap LCG-style hash keyed off the index — fine for visual variety.
+// Deterministic seed list so SSR + client renders match.
 export const SWARM_SEEDS: SwarmSeed[] = Array.from({ length: SWARM_COUNT }, (_, i) => {
   const r = (n: number) => ((i * 9301 + n * 49297) % 233280) / 233280;
 
-  // GRID-WITH-JITTER destination: each particle owns one cell of the
-  // 12×8 grid; jitter inside the cell prevents the grid pattern from
-  // being visible. 5-95% range so dots aren't clipped at the edges.
+  // GRID-WITH-JITTER: each particle owns one cell of the 14×9 grid;
+  // jitter inside cell prevents visible grid pattern. 4-96% range so
+  // shards aren't clipped at edges.
   const col = i % COLS;
   const row = Math.floor(i / COLS);
-  const dxPercent = 5 + ((col + r(1)) / COLS) * 90;
-  const dyPercent = 5 + ((row + r(2)) / ROWS) * 90;
+  const dxPercent = 4 + ((col + r(1)) / COLS) * 92;
+  const dyPercent = 4 + ((row + r(2)) / ROWS) * 92;
 
-  // Spawn at random angle 50-90vmin from the destination — far enough
-  // off-section that the swarm reads as "coming from outside" before
-  // settling.
+  // Spawn 45-80vmin from destination at random angle.
   const angle = r(3) * Math.PI * 2;
-  const spawnDist = 50 + r(4) * 40;
+  const spawnDist = 45 + r(4) * 35;
   const sxNum = Math.cos(angle) * spawnDist;
   const syNum = Math.sin(angle) * spawnDist;
 
-  // Curved arc: midpoint is at the linear midway (sx*0.5, sy*0.5)
-  // PLUS an offset perpendicular to the spawn vector. The
-  // perpendicular unit is (-sin θ, cos θ); curve amount is ~30% of
-  // spawn distance, with random sign so half particles swirl
-  // clockwise and half counter-clockwise.
-  const swirlSign = r(5) > 0.5 ? 1 : -1;
-  const curveAmount = spawnDist * 0.3 * swirlSign;
+  // GENTLE curve — half the swirl amount we had before. Particles
+  // should look like they're being placed deliberately, not
+  // pirouetting in.
+  const curveSign = r(5) > 0.5 ? 1 : -1;
+  const curveAmount = spawnDist * 0.15 * curveSign;
   const mxNum = sxNum * 0.5 + -Math.sin(angle) * curveAmount;
   const myNum = syNum * 0.5 + Math.cos(angle) * curveAmount;
 
-  // Three brightness tiers — most dim, some medium, a few bright —
-  // so the swarm has visual depth instead of feeling flat.
+  // Three opacity tiers (dim majority, medium, bright accents).
   const brightnessRoll = r(6);
   const opacity =
-    brightnessRoll < 0.55 ? 0.45 :
-    brightnessRoll < 0.85 ? 0.7 :
+    brightnessRoll < 0.55 ? 0.55 :
+    brightnessRoll < 0.85 ? 0.75 :
                            0.95;
+
+  // Rotation: spins 180-720° (max 2 full turns) during flight, lands
+  // at 0. Random sign so half spin CW, half CCW.
+  const rotSign = r(7) > 0.5 ? 1 : -1;
+  const rotateStart = (180 + r(8) * 540) * rotSign;
 
   return {
     sx: `${sxNum}vmin`,
@@ -83,9 +82,10 @@ export const SWARM_SEEDS: SwarmSeed[] = Array.from({ length: SWARM_COUNT }, (_, 
     my: `${myNum}vmin`,
     dxPercent,
     dyPercent,
-    size: 3 + Math.floor(r(7) * 4),  // 3..6 px
+    size: 4 + Math.floor(r(7) * 4),  // 4..7 px
     opacity,
-    delay: r(8) * 0.45,               // 0..450ms stagger
+    rotateStart,
+    delay: r(8) * 0.45,               // 0..450ms stagger wave
   };
 });
 
@@ -102,6 +102,7 @@ export function SwarmRevealOverlay() {
             ["--mx" as never]: s.mx,
             ["--my" as never]: s.my,
             ["--p-opacity" as never]: `${s.opacity}`,
+            ["--p-rot-start" as never]: `${s.rotateStart}deg`,
             top: `${s.dyPercent}%`,
             left: `${s.dxPercent}%`,
             width: `${s.size}px`,
@@ -116,9 +117,7 @@ export function SwarmRevealOverlay() {
   );
 }
 
-// Plain-DOM particle spawn — used by the editor chip-pick demo where
-// React mounting isn't available. Returns a cleanup that removes the
-// spawned nodes.
+// Plain-DOM particle spawn — used by the editor chip-pick demo.
 export function spawnSwarmParticles(host: HTMLElement): () => void {
   if (typeof document === "undefined") return () => {};
   const spans: HTMLSpanElement[] = SWARM_SEEDS.map((s) => {
@@ -129,6 +128,7 @@ export function spawnSwarmParticles(host: HTMLElement): () => void {
     span.style.setProperty("--mx", s.mx);
     span.style.setProperty("--my", s.my);
     span.style.setProperty("--p-opacity", `${s.opacity}`);
+    span.style.setProperty("--p-rot-start", `${s.rotateStart}deg`);
     span.style.top = `${s.dyPercent}%`;
     span.style.left = `${s.dxPercent}%`;
     span.style.width = `${s.size}px`;

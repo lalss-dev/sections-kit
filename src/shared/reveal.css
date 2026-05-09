@@ -153,19 +153,24 @@
 }
 
 /* ============================================================
-   SWARM — "the page is being built by the swarm". 96 soft glowing
-   dots spawn outside the section bounds, fly in via curved arcs,
-   and SETTLE into a uniform 12×8 grid spread across the entire
-   section (each particle has a unique destination, NOT a shared
-   center point). The section content stays invisible during flight,
-   fades in once particles have landed, and the particles dissolve
-   on top — so the swarm reads as material that becomes the page,
-   not bugs converging to one spot.
+   SWARM — PowerPoint-style "particle assembly" reveal. Tiny flat
+   shards (4-7px squares with hint of corner-rounding) spawn outside
+   the section, spin in on a gentle curve, and SETTLE at unique
+   grid-tiled destinations covering the whole section.
 
-   JS-driven via .in-view so it always plays once, even on
-   above-the-fold sections. Default color is warm-white core with
-   amber halo; --skit-swarm-color (RGB triplet) overrides for
-   brand-matched accents.
+   Critical timing: the section content fades in WITH the settling
+   particles (not after them) so the page reads as being assembled
+   from the swarm. Particles aren't decoration arriving on top of
+   an already-revealed page; they're the material the page is built
+   from. By the end they've dissolved into the page.
+
+   Why shards (not glowing orbs): orbs read as "magical decoration".
+   Small flat squares with rotation read as "pieces of the page
+   being placed". PPT's "Particle" entrance uses this exact shape.
+
+   --skit-swarm-color (RGB triplet) overrides the shard color to
+   match brand accent. Default is a neutral warm-white that shows
+   on most backgrounds without screaming "decoration".
    ============================================================ */
 
 .skit-reveal-swarm {
@@ -175,37 +180,28 @@
 .skit-reveal-swarm.in-view {
   animation: skit-reveal-swarm calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-/* Section content stays hidden while the swarm flies in (0-65%);
-   fades in BEHIND the swarm as particles settle (65-85%); then
-   particles dissolve on top (85-100%) revealing the finished page. */
+/* Page fades in WITH the settling swarm: starts at 30% (when
+   particles begin arriving) and reaches full opacity at 80% — the
+   particles are still visibly settling at that point. Then they
+   dissolve on top during the last 20%. Reads as "swarm builds
+   the page" not "swarm arrives, then page magically appears". */
 @keyframes skit-reveal-swarm {
   0%   { opacity: 0; }
-  65%  { opacity: 0; }
-  85%  { opacity: 1; }
+  30%  { opacity: 0; }
+  80%  { opacity: 1; }
   100% { opacity: 1; }
 }
 
-/* Per-particle dot. Bright warm-white core via radial-gradient with
-   a layered amber halo via box-shadow so each dot reads as a glowing
-   mote on any background. No blend mode — pure additive would wash
-   out on light backgrounds, multiply would disappear on dark. The
-   inline `top` and `left` (set per-particle in swarm-reveal.tsx)
-   place the destination; the keyframe transform moves the particle
-   from its spawn offset back to (0, 0) which IS the destination. */
+/* Per-particle shard. Small flat square with a hint of corner
+   rounding (1px) so it reads as a chunk-of-content, not a sharp
+   pixel. Soft drop-shadow gives a tiny depth cue without becoming
+   a glow. Default fill is warm-white-ish; --skit-swarm-color (RGB
+   triplet) lets sections override for brand match. */
 .skit-reveal-swarm-particle {
   position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 251, 235, 1) 0%,
-    rgba(255, 235, 175, 0.95) 35%,
-    rgba(245, 215, 110, 0.55) 75%,
-    rgba(245, 215, 110, 0) 100%
-  );
-  box-shadow:
-    0 0 4px 0 rgba(var(--skit-swarm-color, 245 215 110), 0.85),
-    0 0 12px 2px rgba(var(--skit-swarm-color, 245 215 110), 0.5),
-    0 0 28px 6px rgba(var(--skit-swarm-color, 245 215 110), 0.2);
+  border-radius: 1px;
+  background: rgba(var(--skit-swarm-color, 250 245 230), 0.95);
+  box-shadow: 0 1px 3px 0 rgba(var(--skit-swarm-color, 200 175 110), 0.4);
   pointer-events: none;
   will-change: transform, opacity;
   opacity: 0;
@@ -214,35 +210,34 @@
   animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes skit-reveal-swarm-particle {
-  /* Spawn — invisible, far outside the section. */
+  /* Spawn — invisible, far outside the section, mid-rotation. */
   0% {
-    transform: translate(var(--sx, 0), var(--sy, 0)) scale(0.7);
+    transform: translate(var(--sx, 0), var(--sy, 0)) rotate(var(--p-rot-start, 0deg)) scale(0.6);
     opacity: 0;
   }
-  /* Quick fade-in once the particle starts moving. */
-  10% {
-    opacity: var(--p-opacity, 0.7);
-    transform: translate(calc(var(--sx, 0) * 0.9), calc(var(--sy, 0) * 0.9)) scale(0.85);
+  /* Fade-in as the shard starts its flight. */
+  12% {
+    transform: translate(calc(var(--sx, 0) * 0.88), calc(var(--sy, 0) * 0.88)) rotate(calc(var(--p-rot-start, 0deg) * 0.85)) scale(0.85);
+    opacity: var(--p-opacity, 0.75);
   }
-  /* MID-ARC — particle is at the swirl waypoint, NOT on the straight
-     line. This is what gives the "curved swarm" feel instead of
-     "lasers pointing at targets". */
+  /* MID-ARC — gentle curve through perpendicular waypoint, partial
+     un-spin. Shorter swing than the swirly version to feel deliberate. */
   55% {
-    transform: translate(var(--mx, 0), var(--my, 0)) scale(0.95);
-    opacity: var(--p-opacity, 0.7);
+    transform: translate(var(--mx, 0), var(--my, 0)) rotate(calc(var(--p-rot-start, 0deg) * 0.3)) scale(1);
+    opacity: var(--p-opacity, 0.75);
   }
-  /* Settle — particle arrives at its destination (0,0 means at the
-     inline top/left position). Brief hover at full size while the
-     section content is fading in BEHIND the swarm. */
-  78% {
-    transform: translate(0, 0) scale(1);
-    opacity: var(--p-opacity, 0.7);
+  /* SETTLE — shard arrives at destination (translate 0,0 = the
+     inline top/left position), rotation back to 0, full size.
+     The page is fading in around it during this phase. */
+  75% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: var(--p-opacity, 0.75);
   }
-  /* Dissolve — particle fades out on top of the now-revealed page,
-     so the swarm reads as having BUILT the page rather than just
-     converging. */
+  /* Dissolve in place — shard fades out without moving, so it
+     reads as becoming part of the now-visible page rather than
+     flying away. */
   100% {
-    transform: translate(0, 0) scale(0.6);
+    transform: translate(0, 0) rotate(0deg) scale(0.85);
     opacity: 0;
   }
 }
