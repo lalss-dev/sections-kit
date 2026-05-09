@@ -286,6 +286,12 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
   const prevPos = el.style.position;
   if (getComputedStyle(el).position === "static") el.style.position = "relative";
 
+  // Capture the existing content children BEFORE spawning particles
+  // so we can fade THEM (not the section wrapper). Fading the section
+  // would multiply through to the in-flight shards and hide the most
+  // dramatic part of the animation.
+  const contentChildren = Array.from(el.children) as HTMLElement[];
+
   const cleanup = spawnSwarmParticles(el);
 
   for (let i = 0; i < SWARM_SEEDS.length; i++) {
@@ -309,35 +315,39 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
     );
   }
 
-  // Section content fades in WITH the settling shards (30%-80%) so
-  // the swarm visibly assembles the page. Same timing as the live
-  // CSS keyframes so the demo matches.
-  const sectionAnim = (el as HTMLElement).animate(
-    [
-      { offset: 0,    opacity: 0 },
-      { offset: 0.30, opacity: 0 },
-      { offset: 0.80, opacity: 1 },
-      { offset: 1,    opacity: 1 },
-    ],
-    { duration: swarmDur, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
-  );
+  // Page content fades in WITH the settling shards (30%-80%) so the
+  // swarm visibly assembles the page. We fade each existing content
+  // child individually rather than the section wrapper — keeps the
+  // shards visible during their entire fly-in.
+  let lastContentAnim: Animation | null = null;
+  for (const child of contentChildren) {
+    lastContentAnim = child.animate(
+      [
+        { offset: 0,    opacity: 0 },
+        { offset: 0.30, opacity: 0 },
+        { offset: 0.80, opacity: 1 },
+        { offset: 1,    opacity: 1 },
+      ],
+      { duration: swarmDur, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+    );
+  }
 
-  // Cleanup once the longest tail finishes. Fall back to setTimeout if
-  // the animation handle is null (shouldn't be).
+  // Cleanup once the longest tail finishes.
   const finishTimer = setTimeout(() => {
     cleanup();
     if (prevPos) el.style.position = prevPos;
     else el.style.removeProperty("position");
   }, swarmDur + 600);
 
-  // If something cancels the section animation, still clean up.
-  sectionAnim.addEventListener("cancel", () => {
-    clearTimeout(finishTimer);
-    cleanup();
-    if (prevPos) el.style.position = prevPos;
-    else el.style.removeProperty("position");
-  });
+  if (lastContentAnim) {
+    lastContentAnim.addEventListener("cancel", () => {
+      clearTimeout(finishTimer);
+      cleanup();
+      if (prevPos) el.style.position = prevPos;
+      else el.style.removeProperty("position");
+    });
+  }
 
-  return sectionAnim;
+  return lastContentAnim;
 }
 

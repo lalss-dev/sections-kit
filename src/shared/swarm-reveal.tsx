@@ -82,7 +82,7 @@ export const SWARM_SEEDS: SwarmSeed[] = Array.from({ length: SWARM_COUNT }, (_, 
     my: `${myNum}vmin`,
     dxPercent,
     dyPercent,
-    size: 4 + Math.floor(r(7) * 4),  // 4..7 px
+    size: 5 + Math.floor(r(7) * 5),  // 5..9 px — visible without being chunky
     opacity,
     rotateStart,
     delay: r(8) * 0.45,               // 0..450ms stagger wave

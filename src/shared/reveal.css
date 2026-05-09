@@ -173,35 +173,44 @@
    on most backgrounds without screaming "decoration".
    ============================================================ */
 
+/* Section wrapper itself stays at opacity 1 — we DON'T fade the
+   wrapper because that would also hide the in-flight shards (children
+   of section get parent's opacity multiplied). Instead we target the
+   non-particle direct children for the content fade, so shards stay
+   visible during their entire fly-in. */
 .skit-reveal-swarm {
+  /* No animation on the section — content children + particles each
+     animate independently. */
+}
+.skit-reveal-swarm > :not(.skit-reveal-swarm-particle) {
   opacity: 0;
   will-change: opacity;
 }
-.skit-reveal-swarm.in-view {
-  animation: skit-reveal-swarm calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.skit-reveal-swarm.in-view > :not(.skit-reveal-swarm-particle) {
+  animation: skit-reveal-swarm-content calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-/* Page fades in WITH the settling swarm: starts at 30% (when
-   particles begin arriving) and reaches full opacity at 80% — the
-   particles are still visibly settling at that point. Then they
-   dissolve on top during the last 20%. Reads as "swarm builds
-   the page" not "swarm arrives, then page magically appears". */
-@keyframes skit-reveal-swarm {
+/* Content fades in WITH the settling shards (30%-80%) — shards are
+   still visibly arriving at the same time the page appears, so the
+   page reads as being assembled by them. */
+@keyframes skit-reveal-swarm-content {
   0%   { opacity: 0; }
   30%  { opacity: 0; }
   80%  { opacity: 1; }
   100% { opacity: 1; }
 }
 
-/* Per-particle shard. Small flat square with a hint of corner
-   rounding (1px) so it reads as a chunk-of-content, not a sharp
-   pixel. Soft drop-shadow gives a tiny depth cue without becoming
-   a glow. Default fill is warm-white-ish; --skit-swarm-color (RGB
-   triplet) lets sections override for brand match. */
+/* Per-particle shard. Visible-by-default gold (#D4AF37) with a
+   subtle dark drop-shadow so it shows on light AND dark backgrounds.
+   Solid color + small size + corner-rounding reads as a chunk of
+   content, not a glow orb. --skit-swarm-color (RGB triplet) lets
+   sections override for brand-matched accents. */
 .skit-reveal-swarm-particle {
   position: absolute;
   border-radius: 1px;
-  background: rgba(var(--skit-swarm-color, 250 245 230), 0.95);
-  box-shadow: 0 1px 3px 0 rgba(var(--skit-swarm-color, 200 175 110), 0.4);
+  background: rgb(var(--skit-swarm-color, 212 175 55));
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.15),
+    0 1px 3px 0 rgba(0, 0, 0, 0.25);
   pointer-events: none;
   will-change: transform, opacity;
   opacity: 0;
