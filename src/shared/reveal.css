@@ -107,8 +107,39 @@
 }
 
 /* ============================================================
+   PAGE REVEAL — kills the "zebra" effect where sections animate
+   but the page bg stays static. Apply .skit-page-reveal to the
+   root (lpg-outer / lp-root) and the entire page (bg + content)
+   fades in together on initial load. Per-section reveals continue
+   to handle scroll-triggered effects for content below the fold.
+   ============================================================ */
+
+.skit-page-reveal {
+  animation: skit-page-fade-in var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes skit-page-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ============================================================
    SHORT-CIRCUITS — motion off / reduced-motion
    ============================================================ */
+
+[data-skit-motion="off"].skit-page-reveal,
+[data-skit-motion="off"] .skit-page-reveal {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skit-page-reveal {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
 
 [data-skit-motion="off"] .skit-reveal-fade-up,
 [data-skit-motion="off"] .skit-reveal-fade-down,

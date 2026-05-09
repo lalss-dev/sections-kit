@@ -16,6 +16,14 @@
 export const MOTION_INTENSITIES = ["off", "subtle", "normal", "dramatic"] as const;
 export type MotionIntensity = (typeof MOTION_INTENSITIES)[number];
 
+// motion_speed — separate knob for animation duration. "Intensity" now
+// controls only distance (the visible amount of motion). Speed controls
+// duration. They're orthogonal, so authors can pair "subtle" intensity
+// with "slow" speed for a luxurious feel, or "dramatic" with "fast" for
+// a punchy hero. Default "normal".
+export const MOTION_SPEEDS = ["slow", "normal", "fast"] as const;
+export type MotionSpeed = (typeof MOTION_SPEEDS)[number];
+
 // reveal — per-section enter-the-viewport animation type. Implemented
 // via CSS scroll-driven animations (animation-timeline: view()) on
 // modern browsers (Chrome 115+, Safari 26+, Firefox 130+) with
@@ -74,25 +82,14 @@ export function playRevealPreview(
   el: Element,
   reveal: Reveal,
   intensity: MotionIntensity = "normal",
+  speed: MotionSpeed = "normal",
 ): Animation | null {
   if (reveal === "none" || intensity === "off") return null;
   if (typeof (el as HTMLElement).animate !== "function") return null;
 
-  // Match the values motionVars(intensity) emits.
-  const yMap: Record<MotionIntensity, number> = {
-    "off": 0,
-    "subtle": 8,
-    "normal": 14,
-    "dramatic": 32,
-  };
-  const durMap: Record<MotionIntensity, number> = {
-    "off": 0,
-    "subtle": 500,
-    "normal": 700,
-    "dramatic": 1100,
-  };
-  const y = yMap[intensity];
-  const duration = durMap[intensity];
+  // Match the values motionVars(intensity, speed) emits.
+  const y = INTENSITY_Y[intensity];
+  const duration = SPEED_MS[speed];
   if (duration === 0) return null;
 
   let from: Keyframe;
@@ -123,53 +120,68 @@ export type MotionVars = {
   "data-skit-motion": MotionIntensity;
 };
 
-export function motionVars(intensity: MotionIntensity = "normal"): MotionVars {
-  switch (intensity) {
-    case "off":
-      // values still set so children that read them don't NaN; the
-      // data-attribute short-circuit kills the transition.
-      return {
-        "--skit-motion-y": "0px",
-        "--skit-motion-dur": "0ms",
-        "--skit-motion-stagger": "0ms",
-        "data-skit-motion": "off",
-      };
-    case "subtle":
-      return {
-        "--skit-motion-y": "8px",
-        "--skit-motion-dur": "500ms",
-        "--skit-motion-stagger": "60ms",
-        "data-skit-motion": "subtle",
-      };
-    case "dramatic":
-      return {
-        "--skit-motion-y": "32px",
-        "--skit-motion-dur": "1100ms",
-        "--skit-motion-stagger": "180ms",
-        "data-skit-motion": "dramatic",
-      };
-    case "normal":
-    default:
-      return {
-        "--skit-motion-y": "14px",
-        "--skit-motion-dur": "700ms",
-        "--skit-motion-stagger": "100ms",
-        "data-skit-motion": "normal",
-      };
+// Distance map (intensity controls how far elements move).
+const INTENSITY_Y: Record<MotionIntensity, number> = {
+  "off": 0,
+  "subtle": 8,
+  "normal": 14,
+  "dramatic": 32,
+};
+// Duration map (speed controls how long animations take).
+const SPEED_MS: Record<MotionSpeed, number> = {
+  "slow": 1100,
+  "normal": 700,
+  "fast": 400,
+};
+// Stagger derived from speed.
+const SPEED_STAGGER: Record<MotionSpeed, number> = {
+  "slow": 180,
+  "normal": 100,
+  "fast": 60,
+};
+
+export function motionVars(
+  intensity: MotionIntensity = "normal",
+  speed: MotionSpeed = "normal",
+): MotionVars {
+  if (intensity === "off") {
+    // off short-circuits everything; values still set so children that
+    // read them don't NaN.
+    return {
+      "--skit-motion-y": "0px",
+      "--skit-motion-dur": "0ms",
+      "--skit-motion-stagger": "0ms",
+      "data-skit-motion": "off",
+    };
   }
+  return {
+    "--skit-motion-y": `${INTENSITY_Y[intensity]}px`,
+    "--skit-motion-dur": `${SPEED_MS[speed]}ms`,
+    "--skit-motion-stagger": `${SPEED_STAGGER[speed]}ms`,
+    "data-skit-motion": intensity,
+  };
 }
 
 // Spread onto a React element to apply the motion CSS vars. Strips the
 // data-attribute (handled separately) and casts the rest to React's
 // CSSProperties shape since custom CSS vars aren't typed by default.
-export function motionStyle(intensity: MotionIntensity = "normal"): React.CSSProperties {
-  const v = motionVars(intensity);
+export function motionStyle(
+  intensity: MotionIntensity = "normal",
+  speed: MotionSpeed = "normal",
+): React.CSSProperties {
+  const v = motionVars(intensity, speed);
   return {
     ["--skit-motion-y" as never]: v["--skit-motion-y"],
     ["--skit-motion-dur" as never]: v["--skit-motion-dur"],
     ["--skit-motion-stagger" as never]: v["--skit-motion-stagger"],
   };
 }
+
+// Public maps so editors can render "Slow / Normal / Fast" labels and
+// know the underlying ms (used by playRevealPreview when an explicit
+// duration is needed).
+export const MOTION_SPEED_MS = SPEED_MS;
+export const MOTION_INTENSITY_Y = INTENSITY_Y;
 
 // Empty type import so React's CSSProperties is in scope for motionStyle().
 // We intentionally avoid `import type * from "react"` since the kit is
