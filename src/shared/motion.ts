@@ -60,6 +60,60 @@ export function revealClass(r: Reveal | undefined): string | null {
   return `skit-reveal-${r}`;
 }
 
+// Play a one-shot reveal animation on an element via the Web Animations
+// API. Used by the editor when a user picks a Reveal/Intensity chip so
+// they see what the effect looks like immediately. Independent of the
+// scroll-driven CSS path — it just runs the same keyframes against
+// duration. If the element is currently hidden / display:none, the
+// animation runs but won't be visible (caller's responsibility to
+// scroll the element into view first).
+//
+// Returns the Animation handle so callers can cancel / chain. Returns
+// null if reveal === "none" or duration would be 0.
+export function playRevealPreview(
+  el: Element,
+  reveal: Reveal,
+  intensity: MotionIntensity = "normal",
+): Animation | null {
+  if (reveal === "none" || intensity === "off") return null;
+  if (typeof (el as HTMLElement).animate !== "function") return null;
+
+  // Match the values motionVars(intensity) emits.
+  const yMap: Record<MotionIntensity, number> = {
+    "off": 0,
+    "subtle": 8,
+    "normal": 14,
+    "dramatic": 32,
+  };
+  const durMap: Record<MotionIntensity, number> = {
+    "off": 0,
+    "subtle": 500,
+    "normal": 700,
+    "dramatic": 1100,
+  };
+  const y = yMap[intensity];
+  const duration = durMap[intensity];
+  if (duration === 0) return null;
+
+  let from: Keyframe;
+  switch (reveal) {
+    case "fade-up":    from = { opacity: 0, transform: `translateY(${y}px)` }; break;
+    case "fade-down":  from = { opacity: 0, transform: `translateY(${-y}px)` }; break;
+    case "fade-left":  from = { opacity: 0, transform: `translateX(${y * 1.5}px)` }; break;
+    case "fade-right": from = { opacity: 0, transform: `translateX(${-y * 1.5}px)` }; break;
+    case "scale-in":   from = { opacity: 0, transform: "scale(0.94)" }; break;
+    case "blur-in":    from = { opacity: 0, filter: "blur(12px)" }; break;
+    default: return null;
+  }
+  const to: Keyframe = { opacity: 1, transform: "none", filter: "none" };
+
+  return (el as HTMLElement).animate([from, to], {
+    duration,
+    easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+    fill: "none",
+  });
+}
+
 export type MotionVars = {
   "--skit-motion-y": string;
   "--skit-motion-dur": string;
