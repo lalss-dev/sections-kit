@@ -1,0 +1,139 @@
+/* Per-section reveal animations.
+ *
+ * MODERN PATH — CSS scroll-driven animations (Baseline 2026: Chrome 115+,
+ * Safari 26+, Firefox 130+). Hardware-accelerated, runs off the main
+ * thread, smooth even when JS is busy. The animation plays as the
+ * section enters the viewport (entry 10% to cover 30%), driven purely
+ * by scroll progress — no JS, no IntersectionObserver, no rAF.
+ *
+ * FALLBACK PATH — `.in-view` class added by the host's
+ * IntersectionObserver bootstrap. Used on browsers that don't support
+ * animation-timeline. The fade properties stay at their initial values
+ * until the host adds .in-view, at which point a transition kicks in.
+ *
+ * Both paths read --skit-motion-y and --skit-motion-dur from
+ * data-skit-motion ancestor (set by motionStyle), so the page-level
+ * "Motion intensity" chip scales every reveal.
+ *
+ * "off" + prefers-reduced-motion both kill all reveals.
+ */
+
+/* ============================================================
+   MODERN PATH — scroll-driven animations
+   ============================================================ */
+
+@supports (animation-timeline: view()) {
+  .skit-reveal-fade-up,
+  .skit-reveal-fade-down,
+  .skit-reveal-fade-left,
+  .skit-reveal-fade-right,
+  .skit-reveal-scale-in,
+  .skit-reveal-blur-in {
+    animation: linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 35%;
+  }
+  .skit-reveal-fade-up    { animation-name: skit-reveal-fade-up; }
+  .skit-reveal-fade-down  { animation-name: skit-reveal-fade-down; }
+  .skit-reveal-fade-left  { animation-name: skit-reveal-fade-left; }
+  .skit-reveal-fade-right { animation-name: skit-reveal-fade-right; }
+  .skit-reveal-scale-in   { animation-name: skit-reveal-scale-in; }
+  .skit-reveal-blur-in    { animation-name: skit-reveal-blur-in; }
+}
+
+@keyframes skit-reveal-fade-up {
+  from { opacity: 0; transform: translateY(var(--skit-motion-y, 20px)); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes skit-reveal-fade-down {
+  from { opacity: 0; transform: translateY(calc(-1 * var(--skit-motion-y, 20px))); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes skit-reveal-fade-left {
+  from { opacity: 0; transform: translateX(calc(var(--skit-motion-y, 20px) * 1.5)); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes skit-reveal-fade-right {
+  from { opacity: 0; transform: translateX(calc(-1 * var(--skit-motion-y, 20px) * 1.5)); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes skit-reveal-scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes skit-reveal-blur-in {
+  from { opacity: 0; filter: blur(12px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
+/* ============================================================
+   FALLBACK PATH — IntersectionObserver-driven .in-view
+   ============================================================ */
+
+@supports not (animation-timeline: view()) {
+  .skit-reveal-fade-up,
+  .skit-reveal-fade-down,
+  .skit-reveal-fade-left,
+  .skit-reveal-fade-right,
+  .skit-reveal-scale-in,
+  .skit-reveal-blur-in {
+    opacity: 0;
+    transition:
+      opacity var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1),
+      transform var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1),
+      filter var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: opacity, transform, filter;
+  }
+
+  .skit-reveal-fade-up    { transform: translateY(var(--skit-motion-y, 20px)); }
+  .skit-reveal-fade-down  { transform: translateY(calc(-1 * var(--skit-motion-y, 20px))); }
+  .skit-reveal-fade-left  { transform: translateX(calc(var(--skit-motion-y, 20px) * 1.5)); }
+  .skit-reveal-fade-right { transform: translateX(calc(-1 * var(--skit-motion-y, 20px) * 1.5)); }
+  .skit-reveal-scale-in   { transform: scale(0.94); }
+  .skit-reveal-blur-in    { filter: blur(12px); }
+
+  .skit-reveal-fade-up.in-view,
+  .skit-reveal-fade-down.in-view,
+  .skit-reveal-fade-left.in-view,
+  .skit-reveal-fade-right.in-view,
+  .skit-reveal-scale-in.in-view {
+    opacity: 1;
+    transform: none;
+  }
+  .skit-reveal-blur-in.in-view {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+/* ============================================================
+   SHORT-CIRCUITS — motion off / reduced-motion
+   ============================================================ */
+
+[data-skit-motion="off"] .skit-reveal-fade-up,
+[data-skit-motion="off"] .skit-reveal-fade-down,
+[data-skit-motion="off"] .skit-reveal-fade-left,
+[data-skit-motion="off"] .skit-reveal-fade-right,
+[data-skit-motion="off"] .skit-reveal-scale-in,
+[data-skit-motion="off"] .skit-reveal-blur-in {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skit-reveal-fade-up,
+  .skit-reveal-fade-down,
+  .skit-reveal-fade-left,
+  .skit-reveal-fade-right,
+  .skit-reveal-scale-in,
+  .skit-reveal-blur-in {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

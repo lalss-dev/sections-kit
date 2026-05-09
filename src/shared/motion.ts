@@ -3,7 +3,7 @@
 // it on their root container) AND at the per-section level (per-section
 // overrides are applied via inline style on the section wrapper).
 //
-// Drives three CSS variables used by the .lp-anim-base reveal class:
+// Drives three CSS variables used by the .skit-reveal-* classes:
 //   --skit-motion-y      translate distance during fade-in (px)
 //   --skit-motion-dur    transition duration (ms)
 //   --skit-motion-stagger between-section delay multiplier (ms)
@@ -15,6 +15,50 @@
 
 export const MOTION_INTENSITIES = ["off", "subtle", "normal", "dramatic"] as const;
 export type MotionIntensity = (typeof MOTION_INTENSITIES)[number];
+
+// reveal — per-section enter-the-viewport animation type. Implemented
+// via CSS scroll-driven animations (animation-timeline: view()) on
+// modern browsers (Chrome 115+, Safari 26+, Firefox 130+) with
+// IntersectionObserver `.in-view` fallback for older browsers.
+//
+// "none" opts out entirely — useful for sections that already animate
+// (like the kit's own animation section), or for the "Off" page-level
+// motion intensity.
+//
+// Effects modeled on what landing pages actually use in production:
+//   fade-up      — modern default; gentle slide up + fade
+//   fade-down    — slide DOWN + fade (hero callouts, banners)
+//   fade-left    — slide in from right (left-aligned content)
+//   fade-right   — slide in from left (right-aligned content)
+//   scale-in     — scale 0.94 → 1 + fade (hero / featured)
+//   blur-in      — filter blur(12px) → 0 + fade (premium feel)
+export const REVEALS = [
+  "none",
+  "fade-up",
+  "fade-down",
+  "fade-left",
+  "fade-right",
+  "scale-in",
+  "blur-in",
+] as const;
+export type Reveal = (typeof REVEALS)[number];
+
+export const REVEAL_META: Record<Reveal, { label: string; description: string }> = {
+  "none": { label: "None", description: "No reveal animation" },
+  "fade-up": { label: "Fade up", description: "Slide up + fade in (default)" },
+  "fade-down": { label: "Fade down", description: "Slide down + fade in" },
+  "fade-left": { label: "Fade left", description: "Slide in from right" },
+  "fade-right": { label: "Fade right", description: "Slide in from left" },
+  "scale-in": { label: "Scale in", description: "Scale up 0.94→1 + fade" },
+  "blur-in": { label: "Blur in", description: "Defocus → focus + fade" },
+};
+
+// CSS class name for a given reveal. `none` returns null so consumers
+// can skip applying any class.
+export function revealClass(r: Reveal | undefined): string | null {
+  if (!r || r === "none") return null;
+  return `skit-reveal-${r}`;
+}
 
 export type MotionVars = {
   "--skit-motion-y": string;
