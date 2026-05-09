@@ -1,0 +1,37 @@
+/* motion_intensity reveal-on-scroll baseline. Apply class .skit-anim-base
+   to any element you want to fade-in-on-view; consumer is responsible
+   for adding .in-view via IntersectionObserver. The CSS vars are set
+   on an ancestor (page-level or per-section) by motionStyle() in
+   motion.ts. */
+
+.skit-anim-base {
+  opacity: 0;
+  transform: translateY(var(--skit-motion-y, 14px));
+  transition:
+    opacity var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.skit-anim-base.in-view {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hard short-circuit when motion is "off" — also covers
+   prefers-reduced-motion users via the @media query below. */
+[data-skit-motion="off"] .skit-anim-base,
+[data-skit-motion="off"] .skit-anim-base.in-view {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skit-anim-base,
+  .skit-anim-base.in-view {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
