@@ -19,6 +19,10 @@
       "types": "./dist/shared/motion.d.ts",
       "import": "./dist/shared/motion.js"
     },
+    "./effects": {
+      "types": "./dist/shared/effects/index.d.ts",
+      "import": "./dist/shared/effects/index.js"
+    },
     "./styles.css": "./dist/styles.css"
   },
   "files": [

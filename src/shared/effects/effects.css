@@ -1,0 +1,180 @@
+/* ===========================================================
+   Premium effects — page-level overlays. All scoped to
+   [data-skit-fx] so they can't bleed into host CSS.
+   =========================================================== */
+
+.skit-fx-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* ===========================================================
+   AURORA — three large soft color blobs that drift independently,
+   blended via filter:blur(80px). Looks like a slow-moving northern
+   lights wash. Pure CSS keyframes.
+   =========================================================== */
+
+.skit-fx-aurora {
+  position: absolute;
+  inset: -10%;
+  filter: blur(80px) saturate(1.4);
+  opacity: 0.7;
+}
+
+.skit-fx-aurora-blob {
+  position: absolute;
+  width: 70vmin;
+  height: 70vmin;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.skit-fx-aurora-blob-a {
+  background: radial-gradient(circle, hsl(280 90% 60% / 0.85), transparent 60%);
+  top: -10%;
+  left: -10%;
+  animation: skit-fx-aurora-drift-a 22s ease-in-out infinite alternate;
+}
+.skit-fx-aurora-blob-b {
+  background: radial-gradient(circle, hsl(190 90% 55% / 0.85), transparent 60%);
+  top: 20%;
+  right: -15%;
+  animation: skit-fx-aurora-drift-b 26s ease-in-out infinite alternate;
+}
+.skit-fx-aurora-blob-c {
+  background: radial-gradient(circle, hsl(330 95% 65% / 0.75), transparent 60%);
+  bottom: -10%;
+  left: 30%;
+  animation: skit-fx-aurora-drift-c 30s ease-in-out infinite alternate;
+}
+
+@keyframes skit-fx-aurora-drift-a {
+  from { transform: translate(0, 0)      scale(1); }
+  to   { transform: translate(40vw, 30vh) scale(1.15); }
+}
+@keyframes skit-fx-aurora-drift-b {
+  from { transform: translate(0, 0)         scale(1.05); }
+  to   { transform: translate(-30vw, 40vh)  scale(1); }
+}
+@keyframes skit-fx-aurora-drift-c {
+  from { transform: translate(0, 0)         scale(1); }
+  to   { transform: translate(20vw, -50vh)  scale(1.2); }
+}
+
+/* ===========================================================
+   BUTTERFLIES — many small SVG butterflies fluttering and drifting.
+   Per-butterfly randomization comes from inline custom properties
+   set in Butterflies.tsx; CSS keyframes here are generic.
+   =========================================================== */
+
+.skit-fx-butterflies {
+  position: absolute;
+  inset: 0;
+}
+
+.skit-fx-butterfly {
+  position: absolute;
+  width: var(--skit-fx-bf-size, 24px);
+  height: var(--skit-fx-bf-size, 24px);
+  animation: skit-fx-butterfly-drift var(--skit-fx-bf-dur, 10s) ease-in-out infinite alternate;
+  animation-delay: var(--skit-fx-bf-delay, 0s);
+  will-change: transform;
+}
+
+.skit-fx-bf-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.skit-fx-bf-wings {
+  transform-origin: 20px 22px;
+  transform-box: fill-box;
+  animation: skit-fx-butterfly-flap var(--skit-fx-bf-flap, 0.24s) ease-in-out infinite alternate;
+}
+
+.skit-fx-bf-wing {
+  fill: hsl(var(--skit-fx-bf-hue, 320), 80%, 65%);
+}
+.skit-fx-bf-wing-l { transform-origin: 20px 20px; transform-box: fill-box; }
+.skit-fx-bf-wing-r { transform-origin: 20px 20px; transform-box: fill-box; }
+
+.skit-fx-bf-body {
+  fill: hsl(var(--skit-fx-bf-hue, 320), 30%, 18%);
+}
+
+@keyframes skit-fx-butterfly-flap {
+  from { transform: rotateY(0deg)  scale(1, 1); }
+  to   { transform: rotateY(60deg) scale(0.55, 1); }
+}
+
+@keyframes skit-fx-butterfly-drift {
+  0%   { transform: translate(0, 0)        rotate(-6deg); }
+  25%  { transform: translate(8vw, -6vh)   rotate(8deg); }
+  50%  { transform: translate(-4vw, -10vh) rotate(-4deg); }
+  75%  { transform: translate(6vw, -14vh)  rotate(10deg); }
+  100% { transform: translate(-8vw, -20vh) rotate(-8deg); }
+}
+
+/* ===========================================================
+   PARTICLES — soft floating dots. White dot with subtle glow,
+   drifting slowly upward. Cheap (60 elements, transform-only).
+   =========================================================== */
+
+.skit-fx-particles {
+  position: absolute;
+  inset: 0;
+}
+
+.skit-fx-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.45);
+  opacity: var(--skit-fx-p-opacity, 0.4);
+  animation: skit-fx-particle-drift var(--skit-fx-p-dur, 18s) ease-in-out infinite;
+  animation-delay: var(--skit-fx-p-delay, 0s);
+  will-change: transform, opacity;
+}
+
+@keyframes skit-fx-particle-drift {
+  0%   { transform: translateY(0)     translateX(0); opacity: 0; }
+  10%  { opacity: var(--skit-fx-p-opacity, 0.4); }
+  90%  { opacity: var(--skit-fx-p-opacity, 0.4); }
+  100% { transform: translateY(-110vh) translateX(8vw); opacity: 0; }
+}
+
+/* ===========================================================
+   MATRIX — the canvas owns its rendering. Wrapper just sizes it
+   to viewport with a near-black fallback bg.
+   =========================================================== */
+
+.skit-fx-matrix {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+.skit-fx-matrix-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ===========================================================
+   prefers-reduced-motion — hide all the moving parts. (Matrix
+   handles itself in JS by drawing one static frame.)
+   =========================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .skit-fx-aurora-blob,
+  .skit-fx-butterfly,
+  .skit-fx-bf-wings,
+  .skit-fx-particle {
+    animation: none !important;
+  }
+}

@@ -3,3 +3,4 @@
 
 export * from "./shared/motion.js";
 export * from "./shared/animation/index.js";
+export * from "./shared/effects/index.js";
