@@ -187,15 +187,15 @@
   will-change: opacity;
 }
 .skit-reveal-swarm.in-view > :not(.skit-reveal-swarm-particle) {
-  animation: skit-reveal-swarm-content calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: skit-reveal-swarm-content calc(var(--skit-motion-dur, 700ms) * 3.5) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-/* Content fades in WITH the settling shards (30%-80%) — shards are
-   still visibly arriving at the same time the page appears, so the
-   page reads as being assembled by them. */
+/* Page reveals WHILE shards dissolve (50%-90%). Critically: by the
+   time the page is fully visible (90%+), shards are already gone.
+   No "decorative particles on top of finished page" overlap. */
 @keyframes skit-reveal-swarm-content {
   0%   { opacity: 0; }
-  30%  { opacity: 0; }
-  80%  { opacity: 1; }
+  50%  { opacity: 0; }
+  90%  { opacity: 1; }
   100% { opacity: 1; }
 }
 
@@ -216,7 +216,7 @@
   opacity: 0;
 }
 .skit-reveal-swarm.in-view .skit-reveal-swarm-particle {
-  animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 3.5) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes skit-reveal-swarm-particle {
   /* Spawn — invisible, far outside the section, mid-rotation. */
@@ -225,28 +225,32 @@
     opacity: 0;
   }
   /* Fade-in as the shard starts its flight. */
-  12% {
-    transform: translate(calc(var(--sx, 0) * 0.88), calc(var(--sy, 0) * 0.88)) rotate(calc(var(--p-rot-start, 0deg) * 0.85)) scale(0.85);
+  10% {
+    transform: translate(calc(var(--sx, 0) * 0.9), calc(var(--sy, 0) * 0.9)) rotate(calc(var(--p-rot-start, 0deg) * 0.85)) scale(0.85);
     opacity: var(--p-opacity, 0.75);
   }
-  /* MID-ARC — gentle curve through perpendicular waypoint, partial
-     un-spin. Shorter swing than the swirly version to feel deliberate. */
-  55% {
+  /* MID-ARC — gentle curve through perpendicular waypoint. */
+  45% {
     transform: translate(var(--mx, 0), var(--my, 0)) rotate(calc(var(--p-rot-start, 0deg) * 0.3)) scale(1);
     opacity: var(--p-opacity, 0.75);
   }
-  /* SETTLE — shard arrives at destination (translate 0,0 = the
-     inline top/left position), rotation back to 0, full size.
-     The page is fading in around it during this phase. */
-  75% {
+  /* ARRIVE — shard reaches destination, rotation back to 0,
+     full size. This is the "delivered" moment. */
+  62% {
     transform: translate(0, 0) rotate(0deg) scale(1);
     opacity: var(--p-opacity, 0.75);
   }
-  /* Dissolve in place — shard fades out without moving, so it
-     reads as becoming part of the now-visible page rather than
-     flying away. */
+  /* DISSIPATE — once arrived, shard dissolves in place over the
+     remaining 40% of timeline. Slight scale-up makes it feel like
+     a puff of dust dispersing rather than just vanishing. By 90%
+     it's faded to ~0 — the page is reaching full opacity at the
+     same time, so the swarm "transforms into" the page. */
+  85% {
+    transform: translate(0, 0) rotate(0deg) scale(1.25);
+    opacity: 0.15;
+  }
   100% {
-    transform: translate(0, 0) rotate(0deg) scale(0.85);
+    transform: translate(0, 0) rotate(0deg) scale(1.4);
     opacity: 0;
   }
 }

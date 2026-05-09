@@ -280,7 +280,9 @@ export const MOTION_INTENSITY_Y = INTENSITY_Y;
 export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation | null {
   if (typeof document === "undefined") return null;
   if (typeof (el as HTMLElement).animate !== "function") return null;
-  const swarmDur = Math.max(1200, baseDuration * 1.6);
+  // Swarm needs more room than basic reveals — 3.5x base so the
+  // fly-in arc is actually visible (was 1.6x → too quick).
+  const swarmDur = Math.max(1500, baseDuration * 2.2);
 
   // Anchor for absolute children. Restore on cleanup.
   const prevPos = el.style.position;
@@ -301,10 +303,11 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
     sprite.animate(
       [
         { offset: 0,    opacity: 0,            transform: `translate(${seed.sx}, ${seed.sy}) rotate(${seed.rotateStart}deg) scale(0.6)` },
-        { offset: 0.12, opacity: seed.opacity, transform: `translate(calc(${seed.sx} * 0.88), calc(${seed.sy} * 0.88)) rotate(${seed.rotateStart * 0.85}deg) scale(0.85)` },
-        { offset: 0.55, opacity: seed.opacity, transform: `translate(${seed.mx}, ${seed.my}) rotate(${seed.rotateStart * 0.3}deg) scale(1)` },
-        { offset: 0.75, opacity: seed.opacity, transform: `translate(0, 0) rotate(0deg) scale(1)` },
-        { offset: 1,    opacity: 0,            transform: `translate(0, 0) rotate(0deg) scale(0.85)` },
+        { offset: 0.10, opacity: seed.opacity, transform: `translate(calc(${seed.sx} * 0.9), calc(${seed.sy} * 0.9)) rotate(${seed.rotateStart * 0.85}deg) scale(0.85)` },
+        { offset: 0.45, opacity: seed.opacity, transform: `translate(${seed.mx}, ${seed.my}) rotate(${seed.rotateStart * 0.3}deg) scale(1)` },
+        { offset: 0.62, opacity: seed.opacity, transform: `translate(0, 0) rotate(0deg) scale(1)` },
+        { offset: 0.85, opacity: 0.15,         transform: `translate(0, 0) rotate(0deg) scale(1.25)` },
+        { offset: 1,    opacity: 0,            transform: `translate(0, 0) rotate(0deg) scale(1.4)` },
       ],
       {
         duration: swarmDur,
@@ -315,17 +318,16 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
     );
   }
 
-  // Page content fades in WITH the settling shards (30%-80%) so the
-  // swarm visibly assembles the page. We fade each existing content
-  // child individually rather than the section wrapper — keeps the
-  // shards visible during their entire fly-in.
+  // Page reveals as shards DISSIPATE (50%-90%). By the time page
+  // is fully visible, shards are already gone — no decorative
+  // overlap on a finished page.
   let lastContentAnim: Animation | null = null;
   for (const child of contentChildren) {
     lastContentAnim = child.animate(
       [
         { offset: 0,    opacity: 0 },
-        { offset: 0.30, opacity: 0 },
-        { offset: 0.80, opacity: 1 },
+        { offset: 0.50, opacity: 0 },
+        { offset: 0.90, opacity: 1 },
         { offset: 1,    opacity: 1 },
       ],
       { duration: swarmDur, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
