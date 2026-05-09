@@ -74,9 +74,13 @@ export const REVEAL_META: Record<Reveal, { label: string; description: string; t
 };
 
 // CSS class name for a given reveal. `none` returns null so consumers
-// can skip applying any class.
+// can skip applying any class. Also returns null for any value not in
+// the current REVEALS list — protects against orphaned classes from
+// removed reveals (e.g. saved pages with reveal="swarm" after swarm
+// was deprecated would otherwise emit a dead skit-reveal-swarm class).
 export function revealClass(r: Reveal | undefined): string | null {
   if (!r || r === "none") return null;
+  if (!REVEALS.includes(r)) return null;
   return `skit-reveal-${r}`;
 }
 
