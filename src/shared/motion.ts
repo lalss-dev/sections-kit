@@ -294,11 +294,11 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
     if (!sprite) continue;
     sprite.animate(
       [
-        { offset: 0,    opacity: 0,            transform: `translate(${seed.sx}, ${seed.sy}) scale(1)` },
-        { offset: 0.10, opacity: seed.opacity, transform: `translate(calc(${seed.sx} * 0.92), calc(${seed.sy} * 0.92)) scale(1)` },
-        { offset: 0.60, opacity: seed.opacity, transform: `translate(${seed.mx}, ${seed.my}) scale(0.92)` },
-        { offset: 0.85, opacity: 0.45,         transform: `translate(0, 0) scale(0.55)` },
-        { offset: 1,    opacity: 0,            transform: `translate(0, 0) scale(0)` },
+        { offset: 0,    opacity: 0,            transform: `translate(${seed.sx}, ${seed.sy}) scale(0.7)` },
+        { offset: 0.10, opacity: seed.opacity, transform: `translate(calc(${seed.sx} * 0.9), calc(${seed.sy} * 0.9)) scale(0.85)` },
+        { offset: 0.55, opacity: seed.opacity, transform: `translate(${seed.mx}, ${seed.my}) scale(0.95)` },
+        { offset: 0.78, opacity: seed.opacity, transform: `translate(0, 0) scale(1)` },
+        { offset: 1,    opacity: 0,            transform: `translate(0, 0) scale(0.6)` },
       ],
       {
         duration: swarmDur,
@@ -309,14 +309,15 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
     );
   }
 
-  // Section content fades in mid-swarm — match keyframes in CSS so the
-  // demo feels identical to the live render.
+  // Section content stays invisible while particles fly in, fades in
+  // behind the settled swarm, then particles dissolve on top — same
+  // shape as the live CSS keyframes so the demo matches.
   const sectionAnim = (el as HTMLElement).animate(
     [
-      { offset: 0,    opacity: 0, transform: "scale(0.97)" },
-      { offset: 0.55, opacity: 0, transform: "scale(0.99)" },
-      { offset: 0.82, opacity: 1, transform: "scale(1)" },
-      { offset: 1,    opacity: 1, transform: "scale(1)" },
+      { offset: 0,    opacity: 0 },
+      { offset: 0.65, opacity: 0 },
+      { offset: 0.85, opacity: 1 },
+      { offset: 1,    opacity: 1 },
     ],
     { duration: swarmDur, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
   );

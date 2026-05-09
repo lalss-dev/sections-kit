@@ -153,45 +153,47 @@
 }
 
 /* ============================================================
-   SWARM — premium soft-glow dot convergence. JS-driven via
-   .in-view so it always plays once, even on above-the-fold
-   sections. ~80 small glowing dots spawn at random angles 30-70vmin
-   from the section center, then trace a CURVED ARC (through a
-   per-particle midpoint that's offset perpendicular to the spawn
-   line — see swarm-reveal.tsx) to (0, 0) where they shrink + fade.
-   Section content fades in mid-flight after the swarm has mostly
-   converged. Style is intentionally restrained: warm-white dot core
-   with layered gold halo via box-shadow, three brightness tiers,
-   no cartoon shapes — looks more "Plankton" than "Mario fireball".
-   --skit-swarm-color overridable for brand-matched accent.
+   SWARM — "the page is being built by the swarm". 96 soft glowing
+   dots spawn outside the section bounds, fly in via curved arcs,
+   and SETTLE into a uniform 12×8 grid spread across the entire
+   section (each particle has a unique destination, NOT a shared
+   center point). The section content stays invisible during flight,
+   fades in once particles have landed, and the particles dissolve
+   on top — so the swarm reads as material that becomes the page,
+   not bugs converging to one spot.
+
+   JS-driven via .in-view so it always plays once, even on
+   above-the-fold sections. Default color is warm-white core with
+   amber halo; --skit-swarm-color (RGB triplet) overrides for
+   brand-matched accents.
    ============================================================ */
 
 .skit-reveal-swarm {
   opacity: 0;
-  transform: scale(0.97);
-  will-change: opacity, transform;
+  will-change: opacity;
 }
 .skit-reveal-swarm.in-view {
   animation: skit-reveal-swarm calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
+/* Section content stays hidden while the swarm flies in (0-65%);
+   fades in BEHIND the swarm as particles settle (65-85%); then
+   particles dissolve on top (85-100%) revealing the finished page. */
 @keyframes skit-reveal-swarm {
-  0%   { opacity: 0; transform: scale(0.97); }
-  55%  { opacity: 0; transform: scale(0.99); }
-  82%  { opacity: 1; transform: scale(1); }
-  100% { opacity: 1; transform: scale(1); }
+  0%   { opacity: 0; }
+  65%  { opacity: 0; }
+  85%  { opacity: 1; }
+  100% { opacity: 1; }
 }
 
-/* Per-particle dot. Bright warm-white core with a layered amber halo
-   so each dot reads as a glowing mote on any background. Default
-   color is warm-white-with-amber-glow; --skit-swarm-color (RGB
-   triplet without alpha) overrides the halo to match brand accent.
-   No blend mode — pure additive layering would wash out on light
-   backgrounds, multiply would disappear on dark. The radial-gradient
-   core stays bright either way. */
+/* Per-particle dot. Bright warm-white core via radial-gradient with
+   a layered amber halo via box-shadow so each dot reads as a glowing
+   mote on any background. No blend mode — pure additive would wash
+   out on light backgrounds, multiply would disappear on dark. The
+   inline `top` and `left` (set per-particle in swarm-reveal.tsx)
+   place the destination; the keyframe transform moves the particle
+   from its spawn offset back to (0, 0) which IS the destination. */
 .skit-reveal-swarm-particle {
   position: absolute;
-  left: 50%;
-  top: 50%;
   border-radius: 50%;
   background: radial-gradient(
     circle,
@@ -202,8 +204,8 @@
   );
   box-shadow:
     0 0 4px 0 rgba(var(--skit-swarm-color, 245 215 110), 0.85),
-    0 0 14px 2px rgba(var(--skit-swarm-color, 245 215 110), 0.5),
-    0 0 32px 8px rgba(var(--skit-swarm-color, 245 215 110), 0.22);
+    0 0 12px 2px rgba(var(--skit-swarm-color, 245 215 110), 0.5),
+    0 0 28px 6px rgba(var(--skit-swarm-color, 245 215 110), 0.2);
   pointer-events: none;
   will-change: transform, opacity;
   opacity: 0;
@@ -212,31 +214,35 @@
   animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes skit-reveal-swarm-particle {
-  /* Spawn — invisible at edge of orbit. */
+  /* Spawn — invisible, far outside the section. */
   0% {
-    transform: translate(var(--sx, 0), var(--sy, 0)) scale(1);
+    transform: translate(var(--sx, 0), var(--sy, 0)) scale(0.7);
     opacity: 0;
   }
   /* Quick fade-in once the particle starts moving. */
   10% {
     opacity: var(--p-opacity, 0.7);
-    transform: translate(calc(var(--sx, 0) * 0.92), calc(var(--sy, 0) * 0.92)) scale(1);
+    transform: translate(calc(var(--sx, 0) * 0.9), calc(var(--sy, 0) * 0.9)) scale(0.85);
   }
   /* MID-ARC — particle is at the swirl waypoint, NOT on the straight
-     line back to center. This is what gives the "curved swarm" feel
-     instead of "30 lasers pointing at the same target". */
-  60% {
-    transform: translate(var(--mx, 0), var(--my, 0)) scale(0.92);
+     line. This is what gives the "curved swarm" feel instead of
+     "lasers pointing at targets". */
+  55% {
+    transform: translate(var(--mx, 0), var(--my, 0)) scale(0.95);
     opacity: var(--p-opacity, 0.7);
   }
-  /* Approach — particle accelerates toward center as it shrinks. */
-  85% {
-    transform: translate(0, 0) scale(0.55);
-    opacity: 0.45;
+  /* Settle — particle arrives at its destination (0,0 means at the
+     inline top/left position). Brief hover at full size while the
+     section content is fading in BEHIND the swarm. */
+  78% {
+    transform: translate(0, 0) scale(1);
+    opacity: var(--p-opacity, 0.7);
   }
-  /* Dissolve — particle disappears at the section's heart. */
+  /* Dissolve — particle fades out on top of the now-revealed page,
+     so the swarm reads as having BUILT the page rather than just
+     converging. */
   100% {
-    transform: translate(0, 0) scale(0);
+    transform: translate(0, 0) scale(0.6);
     opacity: 0;
   }
 }
