@@ -1,0 +1,86 @@
+/* ===========================================================
+   Interactive effects — fire on user pointer activity, not
+   perpetually. Bilal: "explode when click, decaying cursor etc
+   nothing distracting."
+   =========================================================== */
+
+/* Click sparkle ----------------------------------------------- */
+
+.skit-fx-click-sparkle {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.skit-fx-spark {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: skit-fx-spark-fly 700ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  --sx: 0px;
+  --sy: 0px;
+}
+@keyframes skit-fx-spark-fly {
+  0%   { opacity: 1; transform: translate(-50%, -50%) translate(0, 0)            scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--sx), var(--sy)) scale(0.2); }
+}
+
+/* Cursor trail ------------------------------------------------ */
+
+.skit-fx-cursor-trail {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.skit-fx-trail-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(168, 85, 247, 0.85);
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.7);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: skit-fx-trail-fade 800ms ease-out forwards;
+}
+@keyframes skit-fx-trail-fade {
+  0%   { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(0.2); }
+}
+
+/* Spotlight --------------------------------------------------- */
+
+.skit-fx-spotlight {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 400px;
+  height: 400px;
+  pointer-events: none;
+  z-index: 9998;
+  background: radial-gradient(
+    circle at center,
+    rgba(168, 85, 247, 0.18) 0%,
+    rgba(168, 85, 247, 0.08) 30%,
+    transparent 70%
+  );
+  filter: blur(20px);
+  will-change: transform;
+  transition: opacity 200ms;
+}
+
+/* prefers-reduced-motion — interactive effects are tied to user
+   action so they're already opt-in, but kill animations anyway for
+   strictest accessibility. */
+@media (prefers-reduced-motion: reduce) {
+  .skit-fx-spark,
+  .skit-fx-trail-dot {
+    animation-duration: 0.01ms !important;
+  }
+}

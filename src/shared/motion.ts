@@ -104,23 +104,92 @@ export function playRevealPreview(
   const duration = SPEED_MS[speed];
   if (duration === 0) return null;
 
-  let from: Keyframe;
+  // Each reveal demos via the same keyframes the CSS path uses, just
+  // run on a fixed duration instead of scroll-tied. Premium reveals
+  // each get their own multi-stop keyframes / easing so the demo
+  // looks like the real thing.
   switch (reveal) {
-    case "fade-up":    from = { opacity: 0, transform: `translateY(${y}px)` }; break;
-    case "fade-down":  from = { opacity: 0, transform: `translateY(${-y}px)` }; break;
-    case "fade-left":  from = { opacity: 0, transform: `translateX(${y * 1.5}px)` }; break;
-    case "fade-right": from = { opacity: 0, transform: `translateX(${-y * 1.5}px)` }; break;
-    case "scale-in":   from = { opacity: 0, transform: "scale(0.94)" }; break;
-    case "blur-in":    from = { opacity: 0, filter: "blur(12px)" }; break;
-    default: return null;
+    case "fade-up":
+      return (el as HTMLElement).animate(
+        [{ opacity: 0, transform: `translateY(${y}px)` }, { opacity: 1, transform: "none" }],
+        { duration, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+      );
+    case "fade-down":
+      return (el as HTMLElement).animate(
+        [{ opacity: 0, transform: `translateY(${-y}px)` }, { opacity: 1, transform: "none" }],
+        { duration, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+      );
+    case "fade-left":
+      return (el as HTMLElement).animate(
+        [{ opacity: 0, transform: `translateX(${y * 1.5}px)` }, { opacity: 1, transform: "none" }],
+        { duration, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+      );
+    case "fade-right":
+      return (el as HTMLElement).animate(
+        [{ opacity: 0, transform: `translateX(${-y * 1.5}px)` }, { opacity: 1, transform: "none" }],
+        { duration, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+      );
+    case "scale-in":
+      return (el as HTMLElement).animate(
+        [{ opacity: 0, transform: "scale(0.94)" }, { opacity: 1, transform: "scale(1)" }],
+        { duration, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+      );
+    case "blur-in":
+      return (el as HTMLElement).animate(
+        [{ opacity: 0, filter: "blur(12px)" }, { opacity: 1, filter: "blur(0)" }],
+        { duration, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+      );
+    case "glitch":
+      // RGB split + jitter + hue rotation. text-shadow only renders on
+      // text descendants but the transform/filter still convey the
+      // glitch feel on any section.
+      return (el as HTMLElement).animate(
+        [
+          { offset: 0,    opacity: 0, transform: "translateX(-6px)", filter: "hue-rotate(60deg) saturate(2) contrast(1.4)" },
+          { offset: 0.2,  opacity: 1, transform: "translateX(8px)",  filter: "hue-rotate(-60deg) saturate(2) contrast(1.4)" },
+          { offset: 0.4,  transform: "translateX(-3px)", filter: "hue-rotate(40deg)" },
+          { offset: 0.6,  transform: "translateX(2px)",  filter: "hue-rotate(-20deg)" },
+          { offset: 0.8,  transform: "translateX(0)",    filter: "none" },
+          { offset: 1,    opacity: 1, transform: "none",  filter: "none" },
+        ],
+        { duration, easing: "cubic-bezier(0.4, 0, 0.6, 1)", fill: "none" },
+      );
+    case "magnetic":
+      return (el as HTMLElement).animate(
+        [
+          { opacity: 0, transform: `translateY(${y * 2.5}px) scale(0.85)` },
+          { opacity: 1, transform: "translateY(0) scale(1)" },
+        ],
+        // Elastic overshoot — the same cubic-bezier the CSS path uses.
+        { duration, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)", fill: "none" },
+      );
+    case "ripple":
+      return (el as HTMLElement).animate(
+        [
+          { offset: 0,   opacity: 0, clipPath: "circle(0% at 50% 50%)" },
+          { offset: 0.6, opacity: 1, clipPath: "circle(60% at 50% 50%)" },
+          { offset: 1,   opacity: 1, clipPath: "circle(150% at 50% 50%)" },
+        ],
+        { duration, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+      );
+    case "swarm":
+      // Editor preview doesn't render the 30 butterfly sprites
+      // (those only mount on the live page when reveal === "swarm"),
+      // so the demo here is a stand-in: a slow scale-in with tiny
+      // upward drift. The actual butterfly converge plays on the live
+      // render. Keeps the chip "feel responsive" without spinning up
+      // 30 SVG nodes mid-edit.
+      return (el as HTMLElement).animate(
+        [
+          { offset: 0,   opacity: 0, transform: `translateY(${y}px) scale(0.94)` },
+          { offset: 0.6, opacity: 0, transform: "translateY(2px) scale(0.97)" },
+          { offset: 1,   opacity: 1, transform: "translateY(0) scale(1)" },
+        ],
+        { duration: duration * 1.4, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
+      );
+    default:
+      return null;
   }
-  const to: Keyframe = { opacity: 1, transform: "none", filter: "none" };
-
-  return (el as HTMLElement).animate([from, to], {
-    duration,
-    easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
-    fill: "none",
-  });
 }
 
 export type MotionVars = {

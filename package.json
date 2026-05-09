@@ -23,6 +23,10 @@
       "types": "./dist/shared/effects/index.d.ts",
       "import": "./dist/shared/effects/index.js"
     },
+    "./interactive": {
+      "types": "./dist/shared/interactive/index.d.ts",
+      "import": "./dist/shared/interactive/index.js"
+    },
     "./styles.css": "./dist/styles.css"
   },
   "files": [
