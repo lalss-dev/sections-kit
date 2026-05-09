@@ -28,7 +28,11 @@
   .skit-reveal-fade-left,
   .skit-reveal-fade-right,
   .skit-reveal-scale-in,
-  .skit-reveal-blur-in {
+  .skit-reveal-blur-in,
+  .skit-reveal-glitch,
+  .skit-reveal-magnetic,
+  .skit-reveal-ripple,
+  .skit-reveal-swarm {
     animation: linear both;
     animation-timeline: view();
     animation-range: entry 10% cover 35%;
@@ -39,6 +43,16 @@
   .skit-reveal-fade-right { animation-name: skit-reveal-fade-right; }
   .skit-reveal-scale-in   { animation-name: skit-reveal-scale-in; }
   .skit-reveal-blur-in    { animation-name: skit-reveal-blur-in; }
+  .skit-reveal-glitch     { animation-name: skit-reveal-glitch;
+                            /* glitch needs ease-in-out feel, not linear */
+                            animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1); }
+  .skit-reveal-magnetic   { animation-name: skit-reveal-magnetic;
+                            /* elastic overshoot easing */
+                            animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .skit-reveal-ripple     { animation-name: skit-reveal-ripple;
+                            animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .skit-reveal-swarm      { animation-name: skit-reveal-swarm;
+                            animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
 }
 
 @keyframes skit-reveal-fade-up {
@@ -66,6 +80,117 @@
   to   { opacity: 1; filter: blur(0); }
 }
 
+/* GLITCH — RGB-split + jitter, settles into clean. */
+@keyframes skit-reveal-glitch {
+  0%   {
+    opacity: 0;
+    transform: translateX(-6px);
+    filter: hue-rotate(60deg) saturate(2) contrast(1.4);
+    text-shadow: -3px 0 #ff00aa, 3px 0 #00ffff;
+  }
+  20%  {
+    opacity: 1;
+    transform: translateX(8px);
+    filter: hue-rotate(-60deg) saturate(2) contrast(1.4);
+    text-shadow: 4px 0 #ff00aa, -4px 0 #00ffff;
+  }
+  40%  {
+    transform: translateX(-3px);
+    filter: hue-rotate(40deg);
+    text-shadow: -2px 0 #ff00aa, 2px 0 #00ffff;
+  }
+  60%  {
+    transform: translateX(2px);
+    filter: hue-rotate(-20deg);
+    text-shadow: 1px 0 #ff00aa, -1px 0 #00ffff;
+  }
+  80%  {
+    transform: translateX(0);
+    filter: none;
+    text-shadow: none;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    text-shadow: none;
+  }
+}
+
+/* MAGNETIC — overshoot bounce-in. The cubic-bezier on the animation
+   timing function does the elastic feel; keyframes just set the endpoints. */
+@keyframes skit-reveal-magnetic {
+  from { opacity: 0; transform: translateY(calc(var(--skit-motion-y, 14px) * 2.5)) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* RIPPLE — circular clip-path wipe out from the section's center. */
+@keyframes skit-reveal-ripple {
+  from { opacity: 0; clip-path: circle(0% at 50% 50%); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; clip-path: circle(150% at 50% 50%); }
+}
+
+/* SWARM — section content fades in late while the host renders 30
+   butterfly particles overlaid on top. The overlay particles have
+   their own keyframe (skit-reveal-swarm-particle) defined below.
+   Section content is delayed so it appears AFTER particles converge. */
+@keyframes skit-reveal-swarm {
+  0%   { opacity: 0; transform: scale(0.94); }
+  60%  { opacity: 0; transform: scale(0.97); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Per-particle converge animation (used by SwarmRevealOverlay's
+   inline children). Each particle has --sx / --sy custom properties
+   set inline to a random off-section position; this keyframe drives
+   them from there to (0, 0) while shrinking + fading. */
+.skit-reveal-swarm-particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  margin-top: -12px;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+@supports (animation-timeline: view()) {
+  .skit-reveal-swarm-particle {
+    animation: skit-reveal-swarm-particle linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 35%;
+  }
+}
+@supports not (animation-timeline: view()) {
+  .skit-reveal-swarm.in-view .skit-reveal-swarm-particle {
+    animation: skit-reveal-swarm-particle var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+@keyframes skit-reveal-swarm-particle {
+  0%, 60% {
+    transform: translate(var(--sx, 0), var(--sy, 0)) rotate(var(--sr, 0deg)) scale(1);
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.6;
+    transform: translate(0, 0) rotate(0deg) scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) scale(0.1);
+  }
+}
+.skit-reveal-swarm-particle .skit-reveal-swarm-wings {
+  transform-origin: 50% 50%;
+  animation: skit-reveal-swarm-flap 0.22s ease-in-out infinite alternate;
+}
+@keyframes skit-reveal-swarm-flap {
+  from { transform: rotateY(0deg)  scale(1, 1); }
+  to   { transform: rotateY(60deg) scale(0.55, 1); }
+}
+
 /* ============================================================
    FALLBACK PATH — IntersectionObserver-driven .in-view
    ============================================================ */
@@ -76,12 +201,15 @@
   .skit-reveal-fade-left,
   .skit-reveal-fade-right,
   .skit-reveal-scale-in,
-  .skit-reveal-blur-in {
+  .skit-reveal-blur-in,
+  .skit-reveal-magnetic,
+  .skit-reveal-ripple {
     opacity: 0;
     transition:
       opacity var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1),
       transform var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1),
-      filter var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1);
+      filter var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1),
+      clip-path var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1);
     will-change: opacity, transform, filter;
   }
 
@@ -91,18 +219,34 @@
   .skit-reveal-fade-right { transform: translateX(calc(-1 * var(--skit-motion-y, 20px) * 1.5)); }
   .skit-reveal-scale-in   { transform: scale(0.94); }
   .skit-reveal-blur-in    { filter: blur(12px); }
+  .skit-reveal-magnetic   { transform: translateY(calc(var(--skit-motion-y, 14px) * 2.5)) scale(0.85); transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .skit-reveal-ripple     { clip-path: circle(0% at 50% 50%); }
+  .skit-reveal-glitch     { opacity: 0; }
+  .skit-reveal-swarm      { opacity: 0; transform: scale(0.94); }
 
   .skit-reveal-fade-up.in-view,
   .skit-reveal-fade-down.in-view,
   .skit-reveal-fade-left.in-view,
   .skit-reveal-fade-right.in-view,
-  .skit-reveal-scale-in.in-view {
+  .skit-reveal-scale-in.in-view,
+  .skit-reveal-magnetic.in-view {
     opacity: 1;
     transform: none;
   }
   .skit-reveal-blur-in.in-view {
     opacity: 1;
     filter: blur(0);
+  }
+  .skit-reveal-ripple.in-view {
+    opacity: 1;
+    clip-path: circle(150% at 50% 50%);
+  }
+  /* Glitch + swarm fallback: just fade in (the dramatic version
+     requires animation-timeline). */
+  .skit-reveal-glitch.in-view,
+  .skit-reveal-swarm.in-view {
+    opacity: 1;
+    transform: none;
   }
 }
 

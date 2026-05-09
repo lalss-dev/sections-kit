@@ -4,7 +4,13 @@
 // + drift. Pure CSS, no JS, low cost (24 elements, all transform-only
 // animations).
 
-const COUNT = 24;
+// Page-level butterflies are AMBIENT, not the showcase. Bilal: "page
+// effect make that too but minimal only that won't bother reading
+// experience." Halved the count + lowered opacity in CSS so they're
+// background mood, not distraction. The premium "thousand butterfly
+// become one" is a per-section REVEAL effect (swarm reveal), not
+// this.
+const COUNT = 12;
 
 // Pre-rolled random seeds so re-renders give the same butterfly
 // pattern (avoids hydration mismatch).

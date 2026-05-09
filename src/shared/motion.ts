@@ -48,17 +48,29 @@ export const REVEALS = [
   "fade-right",
   "scale-in",
   "blur-in",
+  // Premium reveals — richer animations for premium tier later. Each
+  // fires once when the section enters viewport, then leaves the
+  // section in its natural state. None of them perpetually animate, so
+  // they don't bother reading.
+  "glitch",     // RGB-split + jitter, then resolves
+  "magnetic",   // overshoot bounce-in (elastic easing)
+  "ripple",     // circular clip-path wipe
+  "swarm",      // ~30 butterflies converge into the section position
 ] as const;
 export type Reveal = (typeof REVEALS)[number];
 
-export const REVEAL_META: Record<Reveal, { label: string; description: string }> = {
-  "none": { label: "None", description: "No reveal animation" },
-  "fade-up": { label: "Fade up", description: "Slide up + fade in (default)" },
-  "fade-down": { label: "Fade down", description: "Slide down + fade in" },
-  "fade-left": { label: "Fade left", description: "Slide in from right" },
-  "fade-right": { label: "Fade right", description: "Slide in from left" },
-  "scale-in": { label: "Scale in", description: "Scale up 0.94→1 + fade" },
-  "blur-in": { label: "Blur in", description: "Defocus → focus + fade" },
+export const REVEAL_META: Record<Reveal, { label: string; description: string; tier: "free" | "premium" }> = {
+  "none":       { label: "None",       description: "No reveal animation",                       tier: "free" },
+  "fade-up":    { label: "Fade up",    description: "Slide up + fade in (default)",              tier: "free" },
+  "fade-down":  { label: "Fade down",  description: "Slide down + fade in",                       tier: "free" },
+  "fade-left":  { label: "Fade left",  description: "Slide in from right",                        tier: "free" },
+  "fade-right": { label: "Fade right", description: "Slide in from left",                         tier: "free" },
+  "scale-in":   { label: "Scale in",   description: "Scale up 0.94→1 + fade",                     tier: "free" },
+  "blur-in":    { label: "Blur in",    description: "Defocus → focus + fade",                     tier: "free" },
+  "glitch":     { label: "Glitch",     description: "RGB-split + jitter resolves into section",   tier: "premium" },
+  "magnetic":   { label: "Magnetic",   description: "Overshoot bounce-in with elastic easing",    tier: "premium" },
+  "ripple":     { label: "Ripple",     description: "Circular wipe reveals the section",          tier: "premium" },
+  "swarm":      { label: "Butterflies", description: "Dozens of butterflies converge into form",  tier: "premium" },
 };
 
 // CSS class name for a given reveal. `none` returns null so consumers
