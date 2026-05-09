@@ -202,17 +202,20 @@ const INTENSITY_Y: Record<MotionIntensity, number> = {
   "normal": 14,
   "dramatic": 32,
 };
-// Duration map (speed controls how long animations take).
+// Duration map (speed controls how long animations take). The range is
+// intentionally wide (8x slow:fast) so the perceptual difference is
+// obvious on high-refresh-rate monitors where smooth animations feel
+// faster than they are. Slow = luxurious; fast = snappy.
 const SPEED_MS: Record<MotionSpeed, number> = {
-  "slow": 1100,
-  "normal": 700,
-  "fast": 400,
+  "slow": 2000,
+  "normal": 750,
+  "fast": 250,
 };
 // Stagger derived from speed.
 const SPEED_STAGGER: Record<MotionSpeed, number> = {
-  "slow": 180,
+  "slow": 280,
   "normal": 100,
-  "fast": 60,
+  "fast": 30,
 };
 
 export function motionVars(
@@ -254,8 +257,11 @@ export function motionStyle(
 
 // Public maps so editors can render "Slow / Normal / Fast" labels and
 // know the underlying ms (used by playRevealPreview when an explicit
-// duration is needed).
+// duration is needed). Editors also use MOTION_SPEED_STAGGER_MS when
+// staggering the chip-pick demo across multiple sections so the
+// stagger scales with speed (slow stagger is much wider than fast).
 export const MOTION_SPEED_MS = SPEED_MS;
+export const MOTION_SPEED_STAGGER_MS = SPEED_STAGGER;
 export const MOTION_INTENSITY_Y = INTENSITY_Y;
 
 // Editor-side demo for the swarm reveal. Spawns 30 butterfly sprites

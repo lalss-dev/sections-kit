@@ -1,60 +1,80 @@
 /* Per-section reveal animations.
  *
- * MODERN PATH — CSS scroll-driven animations (Baseline 2026: Chrome 115+,
- * Safari 26+, Firefox 130+). Hardware-accelerated, runs off the main
- * thread, smooth even when JS is busy. The animation plays as the
- * section enters the viewport (entry 10% to cover 30%), driven purely
- * by scroll progress — no JS, no IntersectionObserver, no rAF.
+ * Triggered by the `.in-view` class added by the host's
+ * IntersectionObserver bootstrap when a section enters the viewport.
+ * Each reveal is a one-shot animation with duration driven by
+ * `var(--skit-motion-dur)` so the page-level Speed knob (slow / normal
+ * / fast → 1100 / 700 / 400 ms) actually changes how long the
+ * animation takes. Distance is driven by `var(--skit-motion-y)`
+ * (the Intensity knob).
  *
- * FALLBACK PATH — `.in-view` class added by the host's
- * IntersectionObserver bootstrap. Used on browsers that don't support
- * animation-timeline. The fade properties stay at their initial values
- * until the host adds .in-view, at which point a transition kicks in.
- *
- * Both paths read --skit-motion-y and --skit-motion-dur from
- * data-skit-motion ancestor (set by motionStyle), so the page-level
- * "Motion intensity" chip scales every reveal.
+ * Why not scroll-driven (`animation-timeline: view()`)? Because
+ * timeline-driven animations IGNORE animation-duration entirely —
+ * progress is tied to scroll position. That made the Speed knob
+ * a no-op on modern browsers. Switching to a duration-driven model
+ * trades scroll-tied feel for working speed control, which authors
+ * actually use.
  *
  * "off" + prefers-reduced-motion both kill all reveals.
  */
 
 /* ============================================================
-   MODERN PATH — scroll-driven animations
+   FROM-STATE — what the section looks like before .in-view fires.
    ============================================================ */
 
-/* Scroll-driven path covers the basic reveals + glitch/magnetic/ripple.
- * Swarm is intentionally NOT here — see "swarm" section below. The
- * butterfly converge is a one-shot moment, so it runs JS-driven via
- * the IntersectionObserver `.in-view` class; sections already in view
- * at page load still get the effect. */
-@supports (animation-timeline: view()) {
-  .skit-reveal-fade-up,
-  .skit-reveal-fade-down,
-  .skit-reveal-fade-left,
-  .skit-reveal-fade-right,
-  .skit-reveal-scale-in,
-  .skit-reveal-blur-in,
-  .skit-reveal-glitch,
-  .skit-reveal-magnetic,
-  .skit-reveal-ripple {
-    animation: linear both;
-    animation-timeline: view();
-    animation-range: entry 10% cover 35%;
-  }
-  .skit-reveal-fade-up    { animation-name: skit-reveal-fade-up; }
-  .skit-reveal-fade-down  { animation-name: skit-reveal-fade-down; }
-  .skit-reveal-fade-left  { animation-name: skit-reveal-fade-left; }
-  .skit-reveal-fade-right { animation-name: skit-reveal-fade-right; }
-  .skit-reveal-scale-in   { animation-name: skit-reveal-scale-in; }
-  .skit-reveal-blur-in    { animation-name: skit-reveal-blur-in; }
-  .skit-reveal-glitch     { animation-name: skit-reveal-glitch;
-                            /* glitch needs ease-in-out feel, not linear */
-                            animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1); }
-  .skit-reveal-magnetic   { animation-name: skit-reveal-magnetic;
-                            /* elastic overshoot easing */
-                            animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
-  .skit-reveal-ripple     { animation-name: skit-reveal-ripple;
-                            animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+.skit-reveal-fade-up,
+.skit-reveal-fade-down,
+.skit-reveal-fade-left,
+.skit-reveal-fade-right,
+.skit-reveal-scale-in,
+.skit-reveal-blur-in,
+.skit-reveal-glitch,
+.skit-reveal-magnetic,
+.skit-reveal-ripple {
+  opacity: 0;
+  will-change: opacity, transform, filter;
+}
+
+.skit-reveal-fade-up    { transform: translateY(var(--skit-motion-y, 20px)); }
+.skit-reveal-fade-down  { transform: translateY(calc(-1 * var(--skit-motion-y, 20px))); }
+.skit-reveal-fade-left  { transform: translateX(calc(var(--skit-motion-y, 20px) * 1.5)); }
+.skit-reveal-fade-right { transform: translateX(calc(-1 * var(--skit-motion-y, 20px) * 1.5)); }
+.skit-reveal-scale-in   { transform: scale(0.94); }
+.skit-reveal-blur-in    { filter: blur(12px); }
+.skit-reveal-magnetic   { transform: translateY(calc(var(--skit-motion-y, 14px) * 2.5)) scale(0.85); }
+.skit-reveal-ripple     { clip-path: circle(0% at 50% 50%); }
+
+/* ============================================================
+   ANIMATIONS — fired by .in-view. Duration = motion-dur var.
+   ============================================================ */
+
+.skit-reveal-fade-up.in-view {
+  animation: skit-reveal-fade-up var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.skit-reveal-fade-down.in-view {
+  animation: skit-reveal-fade-down var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.skit-reveal-fade-left.in-view {
+  animation: skit-reveal-fade-left var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.skit-reveal-fade-right.in-view {
+  animation: skit-reveal-fade-right var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.skit-reveal-scale-in.in-view {
+  animation: skit-reveal-scale-in var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.skit-reveal-blur-in.in-view {
+  animation: skit-reveal-blur-in var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.skit-reveal-glitch.in-view {
+  animation: skit-reveal-glitch var(--skit-motion-dur, 700ms) cubic-bezier(0.4, 0, 0.6, 1) both;
+}
+.skit-reveal-magnetic.in-view {
+  /* Elastic overshoot easing — the keyframes just set the endpoints. */
+  animation: skit-reveal-magnetic var(--skit-motion-dur, 700ms) cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.skit-reveal-ripple.in-view {
+  animation: skit-reveal-ripple var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes skit-reveal-fade-up {
@@ -119,8 +139,7 @@
   }
 }
 
-/* MAGNETIC — overshoot bounce-in. The cubic-bezier on the animation
-   timing function does the elastic feel; keyframes just set the endpoints. */
+/* MAGNETIC — overshoot bounce-in. */
 @keyframes skit-reveal-magnetic {
   from { opacity: 0; transform: translateY(calc(var(--skit-motion-y, 14px) * 2.5)) scale(0.85); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -133,24 +152,20 @@
   to   { opacity: 1; clip-path: circle(150% at 50% 50%); }
 }
 
-/* SWARM — JS-driven, one-shot. Stays out of the scroll-driven block
-   above so it ALWAYS plays once when the section enters the viewport
-   (or on page load if it's already visible) — not tied to scroll
-   position. Trigger: IntersectionObserver adds `.in-view` to the
-   section; CSS keyframes below run on the `.in-view` state.
-   --skit-swarm-dur is overridable per-section; default 1800ms gives
-   the converge enough room to feel like a "thousand butterflies
-   become one". */
+/* ============================================================
+   SWARM — JS-driven via .in-view (same path as basic reveals,
+   different keyframes + duration var). The butterfly converge
+   needs more room than the basic 700ms, so it has its own
+   --skit-swarm-dur (default 1800ms) that scales with speed.
+   ============================================================ */
+
 .skit-reveal-swarm {
-  /* Section content fades in mid-animation, after particles have
-     mostly converged. Holds at opacity 0 for the first 50% so the
-     focal point is the swarm. */
   opacity: 0;
   transform: scale(0.96);
   will-change: opacity, transform;
 }
 .skit-reveal-swarm.in-view {
-  animation: skit-reveal-swarm var(--skit-swarm-dur, 1800ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: skit-reveal-swarm calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 @keyframes skit-reveal-swarm {
   0%   { opacity: 0; transform: scale(0.96); }
@@ -176,7 +191,7 @@
   opacity: 0;
 }
 .skit-reveal-swarm.in-view .skit-reveal-swarm-particle {
-  animation: skit-reveal-swarm-particle var(--skit-swarm-dur, 1800ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes skit-reveal-swarm-particle {
   0% {
@@ -210,64 +225,6 @@
 }
 
 /* ============================================================
-   FALLBACK PATH — IntersectionObserver-driven .in-view
-   ============================================================ */
-
-@supports not (animation-timeline: view()) {
-  .skit-reveal-fade-up,
-  .skit-reveal-fade-down,
-  .skit-reveal-fade-left,
-  .skit-reveal-fade-right,
-  .skit-reveal-scale-in,
-  .skit-reveal-blur-in,
-  .skit-reveal-magnetic,
-  .skit-reveal-ripple {
-    opacity: 0;
-    transition:
-      opacity var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1),
-      transform var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1),
-      filter var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1),
-      clip-path var(--skit-motion-dur, 700ms) cubic-bezier(0.2, 0.8, 0.2, 1);
-    will-change: opacity, transform, filter;
-  }
-
-  .skit-reveal-fade-up    { transform: translateY(var(--skit-motion-y, 20px)); }
-  .skit-reveal-fade-down  { transform: translateY(calc(-1 * var(--skit-motion-y, 20px))); }
-  .skit-reveal-fade-left  { transform: translateX(calc(var(--skit-motion-y, 20px) * 1.5)); }
-  .skit-reveal-fade-right { transform: translateX(calc(-1 * var(--skit-motion-y, 20px) * 1.5)); }
-  .skit-reveal-scale-in   { transform: scale(0.94); }
-  .skit-reveal-blur-in    { filter: blur(12px); }
-  .skit-reveal-magnetic   { transform: translateY(calc(var(--skit-motion-y, 14px) * 2.5)) scale(0.85); transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
-  .skit-reveal-ripple     { clip-path: circle(0% at 50% 50%); }
-  .skit-reveal-glitch     { opacity: 0; }
-
-  .skit-reveal-fade-up.in-view,
-  .skit-reveal-fade-down.in-view,
-  .skit-reveal-fade-left.in-view,
-  .skit-reveal-fade-right.in-view,
-  .skit-reveal-scale-in.in-view,
-  .skit-reveal-magnetic.in-view {
-    opacity: 1;
-    transform: none;
-  }
-  .skit-reveal-blur-in.in-view {
-    opacity: 1;
-    filter: blur(0);
-  }
-  .skit-reveal-ripple.in-view {
-    opacity: 1;
-    clip-path: circle(150% at 50% 50%);
-  }
-  /* Glitch fallback: just fade in (the dramatic version requires
-     animation-timeline). Swarm uses the same .in-view path on every
-     browser — its own CSS block above handles all the keyframes. */
-  .skit-reveal-glitch.in-view {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* ============================================================
    PAGE REVEAL — kills the "zebra" effect where sections animate
    but the page bg stays static. Apply .skit-page-reveal to the
    root (lpg-outer / lp-root) and the entire page (bg + content)
@@ -294,37 +251,40 @@
   opacity: 1 !important;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .skit-page-reveal {
-    animation: none !important;
-    opacity: 1 !important;
-  }
-}
-
-
 [data-skit-motion="off"] .skit-reveal-fade-up,
 [data-skit-motion="off"] .skit-reveal-fade-down,
 [data-skit-motion="off"] .skit-reveal-fade-left,
 [data-skit-motion="off"] .skit-reveal-fade-right,
 [data-skit-motion="off"] .skit-reveal-scale-in,
-[data-skit-motion="off"] .skit-reveal-blur-in {
+[data-skit-motion="off"] .skit-reveal-blur-in,
+[data-skit-motion="off"] .skit-reveal-glitch,
+[data-skit-motion="off"] .skit-reveal-magnetic,
+[data-skit-motion="off"] .skit-reveal-ripple,
+[data-skit-motion="off"] .skit-reveal-swarm {
   opacity: 1 !important;
   transform: none !important;
   filter: none !important;
+  clip-path: none !important;
   animation: none !important;
   transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .skit-page-reveal,
   .skit-reveal-fade-up,
   .skit-reveal-fade-down,
   .skit-reveal-fade-left,
   .skit-reveal-fade-right,
   .skit-reveal-scale-in,
-  .skit-reveal-blur-in {
+  .skit-reveal-blur-in,
+  .skit-reveal-glitch,
+  .skit-reveal-magnetic,
+  .skit-reveal-ripple,
+  .skit-reveal-swarm {
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
+    clip-path: none !important;
     animation: none !important;
     transition: none !important;
   }
