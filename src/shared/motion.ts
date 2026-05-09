@@ -1,5 +1,4 @@
 import type React from "react";
-import { SWARM_SEEDS, spawnSwarmParticles } from "./swarm-reveal.js";
 
 // motion_intensity — one knob that scales reveal-on-scroll animations
 // across every kit section. Lives at the page-level (consumers stamp
@@ -58,7 +57,6 @@ export const REVEALS = [
   "glitch",     // RGB-split + jitter, then resolves
   "magnetic",   // overshoot bounce-in (elastic easing)
   "ripple",     // circular clip-path wipe
-  "swarm",      // ~30 butterflies converge into the section position
 ] as const;
 export type Reveal = (typeof REVEALS)[number];
 
@@ -73,7 +71,6 @@ export const REVEAL_META: Record<Reveal, { label: string; description: string; t
   "glitch":     { label: "Glitch",     description: "RGB-split + jitter resolves into section",   tier: "premium" },
   "magnetic":   { label: "Magnetic",   description: "Overshoot bounce-in with elastic easing",    tier: "premium" },
   "ripple":     { label: "Ripple",     description: "Circular wipe reveals the section",          tier: "premium" },
-  "swarm":      { label: "Butterflies", description: "Dozens of butterflies converge into form",  tier: "premium" },
 };
 
 // CSS class name for a given reveal. `none` returns null so consumers
@@ -175,12 +172,6 @@ export function playRevealPreview(
         ],
         { duration, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
       );
-    case "swarm":
-      // Mount 30 butterfly sprites on the section, run the converge
-      // animation per-particle via WAAPI, then clean up. This makes
-      // the chip-pick demo show the actual "thousand butterflies
-      // become one" effect (same shape as the live render).
-      return playSwarmDemo(el as HTMLElement, duration);
     default:
       return null;
   }
@@ -263,104 +254,4 @@ export function motionStyle(
 export const MOTION_SPEED_MS = SPEED_MS;
 export const MOTION_SPEED_STAGGER_MS = SPEED_STAGGER;
 export const MOTION_INTENSITY_Y = INTENSITY_Y;
-
-// Editor-side demo for the swarm reveal. Spawns ~80 glowing-dot sprites
-// inside `el`, animates each via WAAPI through a curved arc (spawn →
-// per-particle midpoint → center) matching the live CSS, then removes
-// the sprites once the animation settles. Returns the section
-// animation handle so callers can chain.
-//
-// Why WAAPI per-particle instead of toggling the .in-view class?
-// In the editor preview, the section may not have the
-// .skit-reveal-swarm class on it (revealCls is suppressed in
-// previewMode to avoid the "outside box" effect). WAAPI is
-// independent — works regardless of CSS class state. We also briefly
-// swap the section's position to "relative" so the absolute-
-// positioned sprites anchor to the section bounds.
-export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation | null {
-  if (typeof document === "undefined") return null;
-  if (typeof (el as HTMLElement).animate !== "function") return null;
-  // Swarm needs more room than basic reveals — 3.5x base so the
-  // fly-in arc is actually visible (was 1.6x → too quick).
-  const swarmDur = Math.max(1500, baseDuration * 2.2);
-
-  // Anchor for absolute children. Restore on cleanup.
-  const prevPos = el.style.position;
-  if (getComputedStyle(el).position === "static") el.style.position = "relative";
-
-  // Capture the existing content children BEFORE spawning particles
-  // so we can fade THEM (not the section wrapper). Fading the section
-  // would multiply through to the in-flight shards and hide the most
-  // dramatic part of the animation.
-  const contentChildren = Array.from(el.children) as HTMLElement[];
-
-  const cleanup = spawnSwarmParticles(el);
-
-  for (let i = 0; i < SWARM_SEEDS.length; i++) {
-    const seed = SWARM_SEEDS[i];
-    const sprite = el.querySelectorAll<HTMLElement>(".skit-reveal-swarm-particle")[i];
-    if (!sprite) continue;
-    // Wide per-particle stagger expressed in absolute ms — same model
-    // as the live CSS path. delayFactor is 0..2 of motion-dur, so
-    // delays span 0..2x of baseDuration. Different cells reach their
-    // dissolve phase at very different absolute times = "30% built,
-    // 70% still tiles" puzzle moment becomes visible.
-    const particleDelay = seed.delayFactor * baseDuration;
-    sprite.animate(
-      [
-        { offset: 0,    opacity: 0,    transform: `translate(${seed.sx}, ${seed.sy}) rotate(${seed.rotateStart}deg) scale(${seed.flightScale})` },
-        { offset: 0.10, opacity: 0.95, transform: `translate(calc(${seed.sx} * 0.9), calc(${seed.sy} * 0.9)) rotate(${seed.rotateStart * 0.85}deg) scale(${seed.flightScale})` },
-        { offset: 0.45, opacity: 1,    transform: `translate(${seed.mx}, ${seed.my}) rotate(${seed.rotateStart * 0.3}deg) scale(${seed.flightScale})` },
-        { offset: 0.60, opacity: 1,    transform: `translate(0, 0) rotate(0deg) scale(${seed.flightScale})` },
-        { offset: 0.68, opacity: 1,    transform: `translate(0, 0) rotate(0deg) scale(1)` },
-        { offset: 0.82, opacity: 1,    transform: `translate(0, 0) rotate(0deg) scale(1)` },
-        { offset: 1,    opacity: 0,    transform: `translate(0, 0) rotate(0deg) scale(1)` },
-      ],
-      {
-        duration: swarmDur,
-        delay: particleDelay,
-        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-        fill: "forwards",
-      },
-    );
-  }
-
-  // Page content fades in early so it's visible UNDERNEATH the
-  // mosaic by the time the first tiles start dissolving. With wide
-  // per-particle delays, dissolves continue long after this fade
-  // finishes — animation `fill: forwards` keeps content at opacity 1
-  // until the last tile is gone.
-  let lastContentAnim: Animation | null = null;
-  for (const child of contentChildren) {
-    lastContentAnim = child.animate(
-      [
-        { offset: 0,    opacity: 0 },
-        { offset: 0.50, opacity: 0 },
-        { offset: 0.60, opacity: 1 },
-        { offset: 1,    opacity: 1 },
-      ],
-      { duration: swarmDur, easing: "linear", fill: "forwards" },
-    );
-  }
-
-  // Cleanup once the longest tail finishes. Latest particle delay
-  // is 2x baseDuration, so total wallclock = swarmDur + 2*baseDuration.
-  const maxDelay = baseDuration * 2;
-  const finishTimer = setTimeout(() => {
-    cleanup();
-    if (prevPos) el.style.position = prevPos;
-    else el.style.removeProperty("position");
-  }, swarmDur + maxDelay + 600);
-
-  if (lastContentAnim) {
-    lastContentAnim.addEventListener("cancel", () => {
-      clearTimeout(finishTimer);
-      cleanup();
-      if (prevPos) el.style.position = prevPos;
-      else el.style.removeProperty("position");
-    });
-  }
-
-  return lastContentAnim;
-}
 

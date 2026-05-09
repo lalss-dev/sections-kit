@@ -153,123 +153,6 @@
 }
 
 /* ============================================================
-   SWARM — tile-mosaic "page builds tile-by-tile" reveal.
-
-   Each shard flies in to a unique cell of a 14×9 grid covering the
-   section. At its destination, it GROWS to fill its cell (scale
-   ~14x in width and ~10x in height — produces ~110×80px tiles for
-   a 7-9px shard), creating a complete mosaic that briefly COVERS
-   the section. Then the tiles dissolve in stagger order, revealing
-   the page tile-by-tile in a wave — NOT a global page fade.
-
-   Net visual: 1 shard = 1 tile of the page. The page emerges
-   tile-by-tile through the dissolving mosaic, not as a separate
-   crossfade. Stagger order (set per-particle in swarm-reveal.tsx)
-   creates a wave of dissolves across the section.
-
-   --skit-swarm-color (RGB triplet) overrides the tile color to
-   match brand. Default is warm cream — visible enough to show as
-   a mosaic on white sections, contrasts on dark.
-   ============================================================ */
-
-.skit-reveal-swarm {
-  /* Page content stays at opacity 1 — tiles are doing the masking.
-     A short opacity-0→1 ramp at the start hides any unstyled flash
-     while the swarm is mid-flight (tiles haven't started growing
-     yet so the page would otherwise be visible). */
-}
-.skit-reveal-swarm > :not(.skit-reveal-swarm-particle) {
-  opacity: 0;
-  will-change: opacity;
-}
-.skit-reveal-swarm.in-view > :not(.skit-reveal-swarm-particle) {
-  animation: skit-reveal-swarm-content calc(var(--skit-motion-dur, 700ms) * 3.5) linear both;
-}
-/* Page becomes visible at 50% — tiles are arriving and growing at
-   the same time, so the page appears UNDERNEATH the mosaic.
-   Tiles 60-85% completely cover the section; 85-100% they dissolve
-   in stagger order revealing the tile-by-tile build. */
-@keyframes skit-reveal-swarm-content {
-  0%   { opacity: 0; }
-  50%  { opacity: 0; }
-  60%  { opacity: 1; }
-  100% { opacity: 1; }
-}
-
-/* Per-particle TILE. Element's natural box is set inline to exactly
-   one grid cell (top: row*11.11%; left: col*7.14%; width: 7.14%;
-   height: 11.11% — see swarm-reveal.tsx). During flight it's
-   transform-scaled DOWN to a tiny dot via --p-flight-scale; on
-   arrival it scales back to 1, exactly filling its cell because the
-   natural size IS one cell. No approximation. */
-.skit-reveal-swarm-particle {
-  position: absolute;
-  /* Default size in case inline width/height haven't applied yet,
-     so we don't briefly render 0×0 tiles. */
-  width: 7.14%;
-  height: 11.11%;
-  border-radius: 1px;
-  background: rgb(var(--skit-swarm-color, 250 240 215));
-  box-shadow:
-    0 0 0 0.5px rgba(var(--skit-swarm-color, 180 150 80), 0.5),
-    0 1px 3px 0 rgba(0, 0, 0, 0.18);
-  pointer-events: none;
-  will-change: transform, opacity;
-  opacity: 0;
-}
-.skit-reveal-swarm.in-view .skit-reveal-swarm-particle {
-  animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 3.5) cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@keyframes skit-reveal-swarm-particle {
-  /* SPAWN — tiny dot at cell center, translated to spawn offset.
-     Transform read right-to-left: scale shrinks the cell-sized
-     element to a small dot, rotate spins it, translate moves it
-     to a far-off spawn position (translate is in absolute units —
-     unaffected by the prior scale). */
-  0% {
-    transform: translate(var(--sx, 0), var(--sy, 0)) rotate(var(--p-rot-start, 0deg)) scale(var(--p-flight-scale, 0.06));
-    opacity: 0;
-  }
-  /* FADE-IN as the dot starts moving. */
-  10% {
-    transform: translate(calc(var(--sx, 0) * 0.9), calc(var(--sy, 0) * 0.9)) rotate(calc(var(--p-rot-start, 0deg) * 0.85)) scale(var(--p-flight-scale, 0.06));
-    opacity: 0.95;
-  }
-  /* MID-ARC — gentle curve via perpendicular waypoint, partial un-spin. */
-  45% {
-    transform: translate(var(--mx, 0), var(--my, 0)) rotate(calc(var(--p-rot-start, 0deg) * 0.3)) scale(var(--p-flight-scale, 0.06));
-    opacity: 1;
-  }
-  /* ARRIVE — small dot at the cell center, no rotation. */
-  60% {
-    transform: translate(0, 0) rotate(0deg) scale(var(--p-flight-scale, 0.06));
-    opacity: 1;
-  }
-  /* GROW — scale back to 1. The element fills its cell EXACTLY
-     because its natural width/height are cell-percent. The particle
-     becomes a tile that covers exactly 1/126 of the section. */
-  68% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-    opacity: 1;
-  }
-  /* HOLD — full tile mosaic covers the section. Page has just
-     become opacity 1 underneath via .skit-reveal-swarm-content but
-     it's hidden behind the mosaic. */
-  82% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-    opacity: 1;
-  }
-  /* DISSOLVE — tile fades to 0 at its full cell size, in place.
-     Per-particle animation-delay (0..450ms) means dissolves happen
-     in a wave across the section. The page emerges tile-by-tile,
-     one exact cell per particle. */
-  100% {
-    transform: translate(0, 0) rotate(0deg) scale(1);
-    opacity: 0;
-  }
-}
-
-/* ============================================================
    PAGE REVEAL — kills the "zebra" effect where sections animate
    but the page bg stays static. Apply .skit-page-reveal to the
    root (lpg-outer / lp-root) and the entire page (bg + content)
@@ -304,8 +187,7 @@
 [data-skit-motion="off"] .skit-reveal-blur-in,
 [data-skit-motion="off"] .skit-reveal-glitch,
 [data-skit-motion="off"] .skit-reveal-magnetic,
-[data-skit-motion="off"] .skit-reveal-ripple,
-[data-skit-motion="off"] .skit-reveal-swarm {
+[data-skit-motion="off"] .skit-reveal-ripple {
   opacity: 1 !important;
   transform: none !important;
   filter: none !important;
@@ -324,8 +206,7 @@
   .skit-reveal-blur-in,
   .skit-reveal-glitch,
   .skit-reveal-magnetic,
-  .skit-reveal-ripple,
-  .skit-reveal-swarm {
+  .skit-reveal-ripple {
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
