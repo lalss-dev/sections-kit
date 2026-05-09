@@ -1,53 +1,54 @@
-// SwarmRevealOverlay — PowerPoint-style "particle assembly" reveal.
-// Each particle is a small flat shard (4-7px) that spawns far from
-// its destination, flies in on a slight curve while spinning, and
-// SETTLES at a unique grid-tiled destination across the section.
-// The section content fades in WITH the settling particles (not
-// after), so the page reads as being assembled BY the swarm —
-// particles aren't decoration arriving on top of an already-reveald
-// page; they're the material the page is built from.
+// SwarmRevealOverlay — tile-mosaic reveal. Each particle's element is
+// natively sized at exactly one grid cell of the section (width
+// 100/COLS%, height 100/ROWS%, positioned at its row/col origin).
+// During flight it's scaled down to a tiny dot via `transform: scale(...)`
+// and translated to a spawn offset; on arrival it scales back to 1
+// (filling its cell precisely as a tile); during the dissolve phase
+// the tile fades in stagger order, revealing the page underneath
+// tile-by-tile.
 //
-// Why shards (small squares with hint of rounding) and not glowing
-// orbs: orbs read as "magical decoration"; shards with rotation read
-// as "pieces of the page being placed". PPT's "Particle" entrance
-// uses tiny image fragments for exactly this reason.
+// 1 particle = 1 exact tile of the page. Tiles align perfectly to a
+// 14×9 grid because their position/size are percentages of the
+// section, not fixed px scaled by approximation.
 //
-// Each particle has unique:
-//   - destination (12×8 grid + jitter, covers full section)
-//   - spawn offset (random angle 45-80vmin from destination)
-//   - mid-arc waypoint (gentle curve, not a swirl)
-//   - rotation start + end (spins 180-720° during flight, lands at 0)
-//   - opacity (dim majority, with bright accents for depth)
-//   - delay (0-450ms wave so particles arrive in waves)
+// Hosts call this conditionally when section.reveal === "swarm" so
+// the DOM cost only hits sections that opted in.
 
 const COLS = 14;
 const ROWS = 9;
 const SWARM_COUNT = COLS * ROWS;
 
 export type SwarmSeed = {
-  sx: string;        // spawn offset x (vmin) relative to destination
-  sy: string;        // spawn offset y (vmin)
-  mx: string;        // curved-arc midpoint offset x (vmin)
-  my: string;        // curved-arc midpoint offset y (vmin)
-  dxPercent: number; // destination x as % of section width
-  dyPercent: number; // destination y as % of section height
-  size: number;      // px (4..7)
-  opacity: number;   // peak opacity (0..1)
-  rotateStart: number; // deg — initial rotation while flying
-  delay: number;     // seconds
+  // Cell origin as % of section. Element's top/left + width/height
+  // make the natural box exactly equal to one grid cell.
+  dxPercent: number;
+  dyPercent: number;
+  widthPercent: number;
+  heightPercent: number;
+  // Flight offset in vmin (relative to cell center via transform-origin
+  // 50% 50%).
+  sx: string;
+  sy: string;
+  mx: string;
+  my: string;
+  // Visual scale during flight — a tiny fraction so the cell-sized
+  // element looks like a small dot. Slight per-particle variation.
+  flightScale: number;
+  rotateStart: number;
+  delay: number;
 };
 
 // Deterministic seed list so SSR + client renders match.
 export const SWARM_SEEDS: SwarmSeed[] = Array.from({ length: SWARM_COUNT }, (_, i) => {
   const r = (n: number) => ((i * 9301 + n * 49297) % 233280) / 233280;
 
-  // GRID-WITH-JITTER: each particle owns one cell of the 14×9 grid;
-  // jitter inside cell prevents visible grid pattern. 4-96% range so
-  // shards aren't clipped at edges.
+  // Cell-aligned destination — no jitter, so tiles tile perfectly.
   const col = i % COLS;
   const row = Math.floor(i / COLS);
-  const dxPercent = 4 + ((col + r(1)) / COLS) * 92;
-  const dyPercent = 4 + ((row + r(2)) / ROWS) * 92;
+  const widthPercent = 100 / COLS;
+  const heightPercent = 100 / ROWS;
+  const dxPercent = col * widthPercent;
+  const dyPercent = row * heightPercent;
 
   // Spawn 45-80vmin from destination at random angle.
   const angle = r(3) * Math.PI * 2;
@@ -55,37 +56,32 @@ export const SWARM_SEEDS: SwarmSeed[] = Array.from({ length: SWARM_COUNT }, (_, 
   const sxNum = Math.cos(angle) * spawnDist;
   const syNum = Math.sin(angle) * spawnDist;
 
-  // GENTLE curve — half the swirl amount we had before. Particles
-  // should look like they're being placed deliberately, not
-  // pirouetting in.
+  // Gentle curve via perpendicular waypoint.
   const curveSign = r(5) > 0.5 ? 1 : -1;
-  const curveAmount = spawnDist * 0.15 * curveSign;
+  const curveAmount = spawnDist * 0.18 * curveSign;
   const mxNum = sxNum * 0.5 + -Math.sin(angle) * curveAmount;
   const myNum = syNum * 0.5 + Math.cos(angle) * curveAmount;
 
-  // Three opacity tiers (dim majority, medium, bright accents).
-  const brightnessRoll = r(6);
-  const opacity =
-    brightnessRoll < 0.55 ? 0.55 :
-    brightnessRoll < 0.85 ? 0.75 :
-                           0.95;
+  // 0.04..0.08 visual scale during flight — produces a tiny dot
+  // regardless of section size.
+  const flightScale = 0.04 + r(7) * 0.04;
 
-  // Rotation: spins 180-720° (max 2 full turns) during flight, lands
-  // at 0. Random sign so half spin CW, half CCW.
-  const rotSign = r(7) > 0.5 ? 1 : -1;
-  const rotateStart = (180 + r(8) * 540) * rotSign;
+  // Rotation: spins 180-540° during flight, lands at 0.
+  const rotSign = r(8) > 0.5 ? 1 : -1;
+  const rotateStart = (180 + r(2) * 360) * rotSign;
 
   return {
+    dxPercent,
+    dyPercent,
+    widthPercent,
+    heightPercent,
     sx: `${sxNum}vmin`,
     sy: `${syNum}vmin`,
     mx: `${mxNum}vmin`,
     my: `${myNum}vmin`,
-    dxPercent,
-    dyPercent,
-    size: 5 + Math.floor(r(7) * 5),  // 5..9 px — visible without being chunky
-    opacity,
+    flightScale,
     rotateStart,
-    delay: r(8) * 0.45,               // 0..450ms stagger wave
+    delay: r(6) * 0.45, // 0..450ms stagger creates the dissolve wave
   };
 });
 
@@ -97,18 +93,16 @@ export function SwarmRevealOverlay() {
           key={i}
           className="skit-reveal-swarm-particle"
           style={{
+            top: `${s.dyPercent}%`,
+            left: `${s.dxPercent}%`,
+            width: `${s.widthPercent}%`,
+            height: `${s.heightPercent}%`,
             ["--sx" as never]: s.sx,
             ["--sy" as never]: s.sy,
             ["--mx" as never]: s.mx,
             ["--my" as never]: s.my,
-            ["--p-opacity" as never]: `${s.opacity}`,
+            ["--p-flight-scale" as never]: `${s.flightScale}`,
             ["--p-rot-start" as never]: `${s.rotateStart}deg`,
-            top: `${s.dyPercent}%`,
-            left: `${s.dxPercent}%`,
-            width: `${s.size}px`,
-            height: `${s.size}px`,
-            marginLeft: `${-s.size / 2}px`,
-            marginTop: `${-s.size / 2}px`,
             animationDelay: `${s.delay}s`,
           }}
         />
@@ -123,18 +117,16 @@ export function spawnSwarmParticles(host: HTMLElement): () => void {
   const spans: HTMLSpanElement[] = SWARM_SEEDS.map((s) => {
     const span = document.createElement("span");
     span.className = "skit-reveal-swarm-particle";
+    span.style.top = `${s.dyPercent}%`;
+    span.style.left = `${s.dxPercent}%`;
+    span.style.width = `${s.widthPercent}%`;
+    span.style.height = `${s.heightPercent}%`;
     span.style.setProperty("--sx", s.sx);
     span.style.setProperty("--sy", s.sy);
     span.style.setProperty("--mx", s.mx);
     span.style.setProperty("--my", s.my);
-    span.style.setProperty("--p-opacity", `${s.opacity}`);
+    span.style.setProperty("--p-flight-scale", `${s.flightScale}`);
     span.style.setProperty("--p-rot-start", `${s.rotateStart}deg`);
-    span.style.top = `${s.dyPercent}%`;
-    span.style.left = `${s.dxPercent}%`;
-    span.style.width = `${s.size}px`;
-    span.style.height = `${s.size}px`;
-    span.style.marginLeft = `${-s.size / 2}px`;
-    span.style.marginTop = `${-s.size / 2}px`;
     span.style.animationDelay = `${s.delay}s`;
     host.appendChild(span);
     return span;

@@ -302,13 +302,13 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
     if (!sprite) continue;
     sprite.animate(
       [
-        { offset: 0,    opacity: 0,    transform: `translate(${seed.sx}, ${seed.sy}) rotate(${seed.rotateStart}deg) scale(0.6)` },
-        { offset: 0.10, opacity: 0.85, transform: `translate(calc(${seed.sx} * 0.9), calc(${seed.sy} * 0.9)) rotate(${seed.rotateStart * 0.85}deg) scale(0.85)` },
-        { offset: 0.45, opacity: 0.95, transform: `translate(${seed.mx}, ${seed.my}) rotate(${seed.rotateStart * 0.3}deg) scale(1)` },
-        { offset: 0.60, opacity: 1,    transform: `translate(0, 0) rotate(0deg) scale(1)` },
-        { offset: 0.68, opacity: 1,    transform: `translate(0, 0) rotate(0deg) scale(15)` },
-        { offset: 0.82, opacity: 1,    transform: `translate(0, 0) rotate(0deg) scale(15)` },
-        { offset: 1,    opacity: 0,    transform: `translate(0, 0) rotate(0deg) scale(15)` },
+        { offset: 0,    opacity: 0,    transform: `translate(${seed.sx}, ${seed.sy}) rotate(${seed.rotateStart}deg) scale(${seed.flightScale})` },
+        { offset: 0.10, opacity: 0.95, transform: `translate(calc(${seed.sx} * 0.9), calc(${seed.sy} * 0.9)) rotate(${seed.rotateStart * 0.85}deg) scale(${seed.flightScale})` },
+        { offset: 0.45, opacity: 1,    transform: `translate(${seed.mx}, ${seed.my}) rotate(${seed.rotateStart * 0.3}deg) scale(${seed.flightScale})` },
+        { offset: 0.60, opacity: 1,    transform: `translate(0, 0) rotate(0deg) scale(${seed.flightScale})` },
+        { offset: 0.68, opacity: 1,    transform: `translate(0, 0) rotate(0deg) scale(1)` },
+        { offset: 0.82, opacity: 1,    transform: `translate(0, 0) rotate(0deg) scale(1)` },
+        { offset: 1,    opacity: 0,    transform: `translate(0, 0) rotate(0deg) scale(1)` },
       ],
       {
         duration: swarmDur,

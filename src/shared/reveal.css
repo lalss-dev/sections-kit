@@ -196,12 +196,18 @@
   100% { opacity: 1; }
 }
 
-/* Per-particle shard. Solid warm-cream by default with a thin gold
-   border + drop-shadow so each tile reads as a piece of the page
-   being placed. When grown via the keyframe, becomes a ~110×80px
-   tile that briefly covers its cell of the section. */
+/* Per-particle TILE. Element's natural box is set inline to exactly
+   one grid cell (top: row*11.11%; left: col*7.14%; width: 7.14%;
+   height: 11.11% — see swarm-reveal.tsx). During flight it's
+   transform-scaled DOWN to a tiny dot via --p-flight-scale; on
+   arrival it scales back to 1, exactly filling its cell because the
+   natural size IS one cell. No approximation. */
 .skit-reveal-swarm-particle {
   position: absolute;
+  /* Default size in case inline width/height haven't applied yet,
+     so we don't briefly render 0×0 tiles. */
+  width: 7.14%;
+  height: 11.11%;
   border-radius: 1px;
   background: rgb(var(--skit-swarm-color, 250 240 215));
   box-shadow:
@@ -215,43 +221,50 @@
   animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 3.5) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes skit-reveal-swarm-particle {
-  /* Spawn — invisible, outside section, mid-rotation. */
+  /* SPAWN — tiny dot at cell center, translated to spawn offset.
+     Transform read right-to-left: scale shrinks the cell-sized
+     element to a small dot, rotate spins it, translate moves it
+     to a far-off spawn position (translate is in absolute units —
+     unaffected by the prior scale). */
   0% {
-    transform: translate(var(--sx, 0), var(--sy, 0)) rotate(var(--p-rot-start, 0deg)) scale(0.6);
+    transform: translate(var(--sx, 0), var(--sy, 0)) rotate(var(--p-rot-start, 0deg)) scale(var(--p-flight-scale, 0.06));
     opacity: 0;
   }
-  /* Fade in during flight. */
+  /* FADE-IN as the dot starts moving. */
   10% {
-    transform: translate(calc(var(--sx, 0) * 0.9), calc(var(--sy, 0) * 0.9)) rotate(calc(var(--p-rot-start, 0deg) * 0.85)) scale(0.85);
-    opacity: 0.85;
-  }
-  /* MID-ARC — gentle curve waypoint, partial un-spin. */
-  45% {
-    transform: translate(var(--mx, 0), var(--my, 0)) rotate(calc(var(--p-rot-start, 0deg) * 0.3)) scale(1);
+    transform: translate(calc(var(--sx, 0) * 0.9), calc(var(--sy, 0) * 0.9)) rotate(calc(var(--p-rot-start, 0deg) * 0.85)) scale(var(--p-flight-scale, 0.06));
     opacity: 0.95;
   }
-  /* ARRIVE — at destination, normal size. The "delivered" moment. */
+  /* MID-ARC — gentle curve via perpendicular waypoint, partial un-spin. */
+  45% {
+    transform: translate(var(--mx, 0), var(--my, 0)) rotate(calc(var(--p-rot-start, 0deg) * 0.3)) scale(var(--p-flight-scale, 0.06));
+    opacity: 1;
+  }
+  /* ARRIVE — small dot at the cell center, no rotation. */
   60% {
+    transform: translate(0, 0) rotate(0deg) scale(var(--p-flight-scale, 0.06));
+    opacity: 1;
+  }
+  /* GROW — scale back to 1. The element fills its cell EXACTLY
+     because its natural width/height are cell-percent. The particle
+     becomes a tile that covers exactly 1/126 of the section. */
+  68% {
     transform: translate(0, 0) rotate(0deg) scale(1);
     opacity: 1;
   }
-  /* GROW — expand to fill cell. scale(15) on a 7-9px shard
-     yields ~110×80px tile, approximating a 14×9 grid cell of a
-     standard hero-sized section. */
-  68% {
-    transform: translate(0, 0) rotate(0deg) scale(15);
-    opacity: 1;
-  }
-  /* HOLD — full tile coverage. Page is now visible underneath but
-     covered by the tile mosaic. */
+  /* HOLD — full tile mosaic covers the section. Page has just
+     become opacity 1 underneath via .skit-reveal-swarm-content but
+     it's hidden behind the mosaic. */
   82% {
-    transform: translate(0, 0) rotate(0deg) scale(15);
+    transform: translate(0, 0) rotate(0deg) scale(1);
     opacity: 1;
   }
-  /* DISSOLVE — tile fades, revealing its piece of the page. The
-     stagger across particles creates a wave of reveals. */
+  /* DISSOLVE — tile fades to 0 at its full cell size, in place.
+     Per-particle animation-delay (0..450ms) means dissolves happen
+     in a wave across the section. The page emerges tile-by-tile,
+     one exact cell per particle. */
   100% {
-    transform: translate(0, 0) rotate(0deg) scale(15);
+    transform: translate(0, 0) rotate(0deg) scale(1);
     opacity: 0;
   }
 }
