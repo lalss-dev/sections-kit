@@ -153,75 +153,93 @@
 }
 
 /* ============================================================
-   SWARM — JS-driven via .in-view (same path as basic reveals,
-   different keyframes + duration var). The butterfly converge
-   needs more room than the basic 700ms, so it has its own
-   --skit-swarm-dur (default 1800ms) that scales with speed.
+   SWARM — premium soft-glow dot convergence. JS-driven via
+   .in-view so it always plays once, even on above-the-fold
+   sections. ~80 small glowing dots spawn at random angles 30-70vmin
+   from the section center, then trace a CURVED ARC (through a
+   per-particle midpoint that's offset perpendicular to the spawn
+   line — see swarm-reveal.tsx) to (0, 0) where they shrink + fade.
+   Section content fades in mid-flight after the swarm has mostly
+   converged. Style is intentionally restrained: warm-white dot core
+   with layered gold halo via box-shadow, three brightness tiers,
+   no cartoon shapes — looks more "Plankton" than "Mario fireball".
+   --skit-swarm-color overridable for brand-matched accent.
    ============================================================ */
 
 .skit-reveal-swarm {
   opacity: 0;
-  transform: scale(0.96);
+  transform: scale(0.97);
   will-change: opacity, transform;
 }
 .skit-reveal-swarm.in-view {
   animation: skit-reveal-swarm calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 @keyframes skit-reveal-swarm {
-  0%   { opacity: 0; transform: scale(0.96); }
-  55%  { opacity: 0; transform: scale(0.98); }
-  85%  { opacity: 1; transform: scale(1); }
+  0%   { opacity: 0; transform: scale(0.97); }
+  55%  { opacity: 0; transform: scale(0.99); }
+  82%  { opacity: 1; transform: scale(1); }
   100% { opacity: 1; transform: scale(1); }
 }
 
-/* Per-particle converge animation. Each butterfly span has --sx / --sy
-   custom properties set inline to a random off-section position;
-   keyframes drive them from there to (0, 0) while fading and shrinking
-   to nothing as the section content takes over. */
+/* Per-particle dot. Soft warm-white core with a layered amber halo
+   so each dot reads as a glowing mote, not a flat circle. Default
+   color is gold-on-warm-white; --skit-swarm-color (RGB triplet
+   without alpha) lets a section override the halo to match brand. */
 .skit-reveal-swarm-particle {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 24px;
-  height: 24px;
-  margin-left: -12px;
-  margin-top: -12px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 247, 214, 1) 0%,
+    rgba(255, 235, 170, 0.85) 40%,
+    rgba(245, 215, 110, 0.5) 80%,
+    rgba(245, 215, 110, 0) 100%
+  );
+  box-shadow:
+    0 0 4px 0 rgba(var(--skit-swarm-color, 245 215 110), 0.85),
+    0 0 12px 2px rgba(var(--skit-swarm-color, 245 215 110), 0.45),
+    0 0 28px 6px rgba(var(--skit-swarm-color, 245 215 110), 0.18);
   pointer-events: none;
   will-change: transform, opacity;
   opacity: 0;
+  /* mix-blend-mode: screen makes dots glow against any background
+     (light text on dark sections still pops, dark text on light
+     sections gets a subtle halo without washing out). */
+  mix-blend-mode: screen;
 }
 .skit-reveal-swarm.in-view .skit-reveal-swarm-particle {
   animation: skit-reveal-swarm-particle calc(var(--skit-motion-dur, 700ms) * 2.6) cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes skit-reveal-swarm-particle {
+  /* Spawn — invisible at edge of orbit. */
   0% {
-    transform: translate(var(--sx, 0), var(--sy, 0)) rotate(var(--sr, 0deg)) scale(1);
+    transform: translate(var(--sx, 0), var(--sy, 0)) scale(1);
     opacity: 0;
   }
-  12% {
-    opacity: 0.95;
-    transform: translate(calc(var(--sx, 0) * 0.95), calc(var(--sy, 0) * 0.95)) rotate(calc(var(--sr, 0deg) * 0.92)) scale(1);
+  /* Quick fade-in once the particle starts moving. */
+  10% {
+    opacity: var(--p-opacity, 0.7);
+    transform: translate(calc(var(--sx, 0) * 0.92), calc(var(--sy, 0) * 0.92)) scale(1);
   }
-  70% {
-    opacity: 0.85;
-    transform: translate(calc(var(--sx, 0) * 0.18), calc(var(--sy, 0) * 0.18)) rotate(calc(var(--sr, 0deg) * 0.2)) scale(0.78);
+  /* MID-ARC — particle is at the swirl waypoint, NOT on the straight
+     line back to center. This is what gives the "curved swarm" feel
+     instead of "30 lasers pointing at the same target". */
+  60% {
+    transform: translate(var(--mx, 0), var(--my, 0)) scale(0.92);
+    opacity: var(--p-opacity, 0.7);
   }
-  88% {
-    opacity: 0.5;
-    transform: translate(0, 0) rotate(0deg) scale(0.32);
+  /* Approach — particle accelerates toward center as it shrinks. */
+  85% {
+    transform: translate(0, 0) scale(0.55);
+    opacity: 0.45;
   }
+  /* Dissolve — particle disappears at the section's heart. */
   100% {
+    transform: translate(0, 0) scale(0);
     opacity: 0;
-    transform: translate(0, 0) rotate(0deg) scale(0);
   }
-}
-.skit-reveal-swarm-particle .skit-reveal-swarm-wings {
-  transform-origin: 50% 50%;
-  animation: skit-reveal-swarm-flap 0.18s ease-in-out infinite alternate;
-}
-@keyframes skit-reveal-swarm-flap {
-  from { transform: rotateY(0deg)  scale(1, 1); }
-  to   { transform: rotateY(70deg) scale(0.5, 1); }
 }
 
 /* ============================================================

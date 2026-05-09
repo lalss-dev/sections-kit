@@ -1,5 +1,5 @@
 import type React from "react";
-import { SWARM_SEEDS, spawnSwarmButterflies } from "./swarm-reveal.js";
+import { SWARM_SEEDS, spawnSwarmParticles } from "./swarm-reveal.js";
 
 // motion_intensity — one knob that scales reveal-on-scroll animations
 // across every kit section. Lives at the page-level (consumers stamp
@@ -264,11 +264,11 @@ export const MOTION_SPEED_MS = SPEED_MS;
 export const MOTION_SPEED_STAGGER_MS = SPEED_STAGGER;
 export const MOTION_INTENSITY_Y = INTENSITY_Y;
 
-// Editor-side demo for the swarm reveal. Spawns 30 butterfly sprites
-// inside `el`, animates each via WAAPI (same keyframes as the live
-// .skit-reveal-swarm-particle CSS), then removes the sprites once the
-// animation settles. Returns a no-op Animation handle so the
-// playRevealPreview signature stays compatible.
+// Editor-side demo for the swarm reveal. Spawns ~80 glowing-dot sprites
+// inside `el`, animates each via WAAPI through a curved arc (spawn →
+// per-particle midpoint → center) matching the live CSS, then removes
+// the sprites once the animation settles. Returns the section
+// animation handle so callers can chain.
 //
 // Why WAAPI per-particle instead of toggling the .in-view class?
 // In the editor preview, the section may not have the
@@ -286,20 +286,19 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
   const prevPos = el.style.position;
   if (getComputedStyle(el).position === "static") el.style.position = "relative";
 
-  const cleanup = spawnSwarmButterflies(el);
-  let lastAnim: Animation | null = null;
+  const cleanup = spawnSwarmParticles(el);
 
   for (let i = 0; i < SWARM_SEEDS.length; i++) {
     const seed = SWARM_SEEDS[i];
     const sprite = el.querySelectorAll<HTMLElement>(".skit-reveal-swarm-particle")[i];
     if (!sprite) continue;
-    const a = sprite.animate(
+    sprite.animate(
       [
-        { offset: 0,    opacity: 0,    transform: `translate(${seed.sx}, ${seed.sy}) rotate(${seed.sr}) scale(1)` },
-        { offset: 0.12, opacity: 0.95, transform: `translate(calc(${seed.sx} * 0.95), calc(${seed.sy} * 0.95)) rotate(calc(${seed.sr} * 0.92)) scale(1)` },
-        { offset: 0.7,  opacity: 0.85, transform: `translate(calc(${seed.sx} * 0.18), calc(${seed.sy} * 0.18)) rotate(calc(${seed.sr} * 0.2)) scale(0.78)` },
-        { offset: 0.88, opacity: 0.5,  transform: `translate(0, 0) rotate(0deg) scale(0.32)` },
-        { offset: 1,    opacity: 0,    transform: `translate(0, 0) rotate(0deg) scale(0)` },
+        { offset: 0,    opacity: 0,            transform: `translate(${seed.sx}, ${seed.sy}) scale(1)` },
+        { offset: 0.10, opacity: seed.opacity, transform: `translate(calc(${seed.sx} * 0.92), calc(${seed.sy} * 0.92)) scale(1)` },
+        { offset: 0.60, opacity: seed.opacity, transform: `translate(${seed.mx}, ${seed.my}) scale(0.92)` },
+        { offset: 0.85, opacity: 0.45,         transform: `translate(0, 0) scale(0.55)` },
+        { offset: 1,    opacity: 0,            transform: `translate(0, 0) scale(0)` },
       ],
       {
         duration: swarmDur,
@@ -308,16 +307,15 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
         fill: "forwards",
       },
     );
-    lastAnim = a;
   }
 
   // Section content fades in mid-swarm — match keyframes in CSS so the
   // demo feels identical to the live render.
   const sectionAnim = (el as HTMLElement).animate(
     [
-      { offset: 0,    opacity: 0, transform: "scale(0.96)" },
-      { offset: 0.55, opacity: 0, transform: "scale(0.98)" },
-      { offset: 0.85, opacity: 1, transform: "scale(1)" },
+      { offset: 0,    opacity: 0, transform: "scale(0.97)" },
+      { offset: 0.55, opacity: 0, transform: "scale(0.99)" },
+      { offset: 0.82, opacity: 1, transform: "scale(1)" },
       { offset: 1,    opacity: 1, transform: "scale(1)" },
     ],
     { duration: swarmDur, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)", fill: "none" },
@@ -339,6 +337,6 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
     else el.style.removeProperty("position");
   });
 
-  return lastAnim ?? sectionAnim;
+  return sectionAnim;
 }
 
