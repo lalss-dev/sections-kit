@@ -35,7 +35,10 @@ export type SwarmSeed = {
   // element looks like a small dot. Slight per-particle variation.
   flightScale: number;
   rotateStart: number;
-  delay: number;
+  // Multiplier on motion-dur for animation-delay. Range 0..2 — wide
+  // stagger so different cells are at different phases of their
+  // build/dissolve cycle at any frame.
+  delayFactor: number;
 };
 
 // Deterministic seed list so SSR + client renders match.
@@ -70,6 +73,15 @@ export const SWARM_SEEDS: SwarmSeed[] = Array.from({ length: SWARM_COUNT }, (_, 
   const rotSign = r(8) > 0.5 ? 1 : -1;
   const rotateStart = (180 + r(2) * 360) * rotSign;
 
+  // Wide per-particle delay multiplier (0..2 motion-dur). Each
+  // particle's full flight→grow→hold→dissolve cycle is shifted
+  // along the total timeline by `delayFactor * motion-dur`, so at
+  // any frame different cells are at very different phases. This
+  // is what produces the "puzzle 30% built / 70% still waiting"
+  // moment Bilal asked for. Small narrow stagger (the old 0-450ms)
+  // made every cell dissolve nearly together = looked like a fade.
+  const delayFactor = r(6) * 2;
+
   return {
     dxPercent,
     dyPercent,
@@ -81,7 +93,7 @@ export const SWARM_SEEDS: SwarmSeed[] = Array.from({ length: SWARM_COUNT }, (_, 
     my: `${myNum}vmin`,
     flightScale,
     rotateStart,
-    delay: r(6) * 0.45, // 0..450ms stagger creates the dissolve wave
+    delayFactor,
   };
 });
 
@@ -103,7 +115,9 @@ export function SwarmRevealOverlay() {
             ["--my" as never]: s.my,
             ["--p-flight-scale" as never]: `${s.flightScale}`,
             ["--p-rot-start" as never]: `${s.rotateStart}deg`,
-            animationDelay: `${s.delay}s`,
+            // Wide stagger expressed as a multiple of motion-dur so
+            // it scales with the speed knob.
+            animationDelay: `calc(var(--skit-motion-dur, 700ms) * ${s.delayFactor})`,
           }}
         />
       ))}
@@ -127,7 +141,7 @@ export function spawnSwarmParticles(host: HTMLElement): () => void {
     span.style.setProperty("--my", s.my);
     span.style.setProperty("--p-flight-scale", `${s.flightScale}`);
     span.style.setProperty("--p-rot-start", `${s.rotateStart}deg`);
-    span.style.animationDelay = `${s.delay}s`;
+    span.style.animationDelay = `calc(var(--skit-motion-dur, 700ms) * ${s.delayFactor})`;
     host.appendChild(span);
     return span;
   });

@@ -300,6 +300,12 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
     const seed = SWARM_SEEDS[i];
     const sprite = el.querySelectorAll<HTMLElement>(".skit-reveal-swarm-particle")[i];
     if (!sprite) continue;
+    // Wide per-particle stagger expressed in absolute ms — same model
+    // as the live CSS path. delayFactor is 0..2 of motion-dur, so
+    // delays span 0..2x of baseDuration. Different cells reach their
+    // dissolve phase at very different absolute times = "30% built,
+    // 70% still tiles" puzzle moment becomes visible.
+    const particleDelay = seed.delayFactor * baseDuration;
     sprite.animate(
       [
         { offset: 0,    opacity: 0,    transform: `translate(${seed.sx}, ${seed.sy}) rotate(${seed.rotateStart}deg) scale(${seed.flightScale})` },
@@ -312,16 +318,18 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
       ],
       {
         duration: swarmDur,
-        delay: seed.delay * 1000,
+        delay: particleDelay,
         easing: "cubic-bezier(0.22, 1, 0.36, 1)",
         fill: "forwards",
       },
     );
   }
 
-  // Page becomes visible at 50% — tiles arrive and grow over it,
-  // briefly covering the section. Then dissolves in stagger order
-  // reveal it tile-by-tile.
+  // Page content fades in early so it's visible UNDERNEATH the
+  // mosaic by the time the first tiles start dissolving. With wide
+  // per-particle delays, dissolves continue long after this fade
+  // finishes — animation `fill: forwards` keeps content at opacity 1
+  // until the last tile is gone.
   let lastContentAnim: Animation | null = null;
   for (const child of contentChildren) {
     lastContentAnim = child.animate(
@@ -331,16 +339,18 @@ export function playSwarmDemo(el: HTMLElement, baseDuration = 1800): Animation |
         { offset: 0.60, opacity: 1 },
         { offset: 1,    opacity: 1 },
       ],
-      { duration: swarmDur, easing: "linear", fill: "none" },
+      { duration: swarmDur, easing: "linear", fill: "forwards" },
     );
   }
 
-  // Cleanup once the longest tail finishes.
+  // Cleanup once the longest tail finishes. Latest particle delay
+  // is 2x baseDuration, so total wallclock = swarmDur + 2*baseDuration.
+  const maxDelay = baseDuration * 2;
   const finishTimer = setTimeout(() => {
     cleanup();
     if (prevPos) el.style.position = prevPos;
     else el.style.removeProperty("position");
-  }, swarmDur + 600);
+  }, swarmDur + maxDelay + 600);
 
   if (lastContentAnim) {
     lastContentAnim.addEventListener("cancel", () => {
