@@ -52,7 +52,10 @@ export function SplineEmbed({ props }: { props: AnimationProps }) {
 
 type TiltOpts = { intensity: ThreeDInteractivity; punch?: boolean };
 
-function useTilt<T extends HTMLElement>(ref: React.RefObject<T>, { intensity, punch = false }: TiltOpts) {
+function useTilt<T extends HTMLElement>(
+  ref: React.RefObject<T | null>,
+  { intensity, punch = false }: TiltOpts,
+) {
   React.useEffect(() => {
     const el = ref.current;
     if (!el || intensity === "off") {
