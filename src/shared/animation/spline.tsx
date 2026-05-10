@@ -20,13 +20,13 @@ export function SplineEmbed({ props }: { props: AnimationProps }) {
   const scene = props.spline_scene ?? "counter";
   const height = props.height_px ?? 360;
   const interactive: ThreeDInteractivity = props.interactive_3d ?? "normal";
-  // --skit-anim-h drives auto-scale: when the section height is below the
-  // scene's natural height, the inner stage shrinks instead of clipping.
+  // --skit-anim-h drives BOTH the section's effective height AND the
+  // inner stage scale. CSS computes `height: min(--skit-anim-h, natural
+  // * 1.4)` so a user picking XL on a small-natural scene doesn't get
+  // a tall section with a small scene floating in empty space.
   const colorVar: React.CSSProperties = {
     ["--skit-3d-color" as never]: props.color || "var(--skit-anim-default-color, currentColor)",
     ["--skit-anim-h" as never]: `${height}px`,
-    minHeight: height,
-    height,
   };
 
   if (scene === "custom") {
@@ -68,7 +68,11 @@ function useTilt<T extends HTMLElement>(
       el?.style.setProperty("--skit-3d-active", "0");
       return;
     }
-    const max = intensity === "subtle" ? 8 : intensity === "dramatic" ? 22 : 14;
+    // Bilal: "if i put interactivity here it spins like crazy even for
+    // subtle". Halved the max magnitudes — was 8/14/22, now 4/8/14.
+    // Multiplied by 2 internally because cursor delta is -0.5..+0.5,
+    // so effective tilt is ±max degrees.
+    const max = intensity === "subtle" ? 4 : intensity === "dramatic" ? 14 : 8;
     let rafId: number | null = null;
     let nx = 0;
     let ny = 0;

@@ -26,8 +26,6 @@ export function PresetRender({ props }: { props: AnimationProps }) {
   const height = props.height_px ?? 320;
   const color = props.color || undefined;
   const style: React.CSSProperties = {
-    minHeight: height,
-    height,
     ["--skit-anim-color" as never]: color || "var(--skit-anim-default-color, currentColor)",
     ["--skit-anim-h" as never]: `${height}px`,
   };
