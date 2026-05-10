@@ -29,6 +29,24 @@ export const ANIMATION_PRESETS = [
 ] as const;
 export type AnimationPreset = (typeof ANIMATION_PRESETS)[number];
 
+// Scenes for the variant="spline" branch. CSS 3D scenes (no Spline
+// runtime, no JS deps) cover the common "we look modern / tech-
+// forward" hero needs without forcing the author to design a Spline
+// scene. "custom" falls through to spline_url for authors who DO
+// want to bring their own scene.
+export const ANIMATION_3D_SCENES = ["cube", "orbs", "tower", "custom"] as const;
+export type Animation3DScene = (typeof ANIMATION_3D_SCENES)[number];
+
+export const ANIMATION_3D_SCENE_META: Record<
+  Animation3DScene,
+  { label: string; description: string }
+> = {
+  cube:   { label: "Cube",   description: "Wireframe cube rotating in 3D space" },
+  orbs:   { label: "Orbs",   description: "Glowing spheres orbiting a center" },
+  tower:  { label: "Tower",  description: "Stacked translucent panels floating" },
+  custom: { label: "Custom", description: "Paste your own spline.design embed URL" },
+};
+
 export const ANIMATION_PRESET_META: Record<
   AnimationPreset,
   { label: string; description: string }
@@ -40,9 +58,13 @@ export const ANIMATION_PRESET_META: Record<
 
 export type AnimationProps = {
   variant: AnimationVariant;
-  // For variant="spline": the spline.design embed URL. We accept either
-  // the viewer URL (https://my.spline.design/<id>/) or the explicit embed
-  // URL (https://my.spline.design/<id>/embed) — the renderer normalizes.
+  // For variant="spline": which 3D scene to render. Defaults to a CSS-
+  // based scene (cube/orbs/tower) that needs no external runtime. Set to
+  // "custom" to fall through to spline_url and embed an iframe instead.
+  spline_scene?: Animation3DScene;
+  // For variant="spline" + spline_scene="custom": the spline.design embed
+  // URL. We accept either the viewer URL (https://my.spline.design/<id>/)
+  // or the explicit embed URL (.../embed) — the renderer normalizes.
   spline_url?: string;
   // For variant="preset": which preset to render.
   preset?: AnimationPreset;

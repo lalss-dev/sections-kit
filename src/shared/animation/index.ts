@@ -18,9 +18,12 @@ export {
   ANIMATION_VARIANTS,
   ANIMATION_PRESETS,
   ANIMATION_PRESET_META,
+  ANIMATION_3D_SCENES,
+  ANIMATION_3D_SCENE_META,
   defaultAnimationProps,
   type AnimationVariant,
   type AnimationPreset,
+  type Animation3DScene,
   type AnimationProps,
   type AnimationSectionFields,
 } from "./types.js";

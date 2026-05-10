@@ -1,24 +1,98 @@
+import * as React from "react";
 import type { AnimationProps } from "./types.js";
 
-// SplineEmbed — iframe-loads a spline.design viewer URL. Iframe vs the
-// <spline-viewer> web component is intentional: the WebGL runtime
-// (~250-400KB depending on scene) stays scoped to the iframe, so a page
-// without an animation section pays nothing. Trade-off: an extra HTTP
-// request per Spline section, but they're full-width hero blocks so the
-// count is normally one or two per page.
+// 3D scene dispatcher for variant="spline". Three pure-CSS 3D scenes
+// (cube / orbs / tower) cover the common "modern / tech-forward" hero
+// needs without forcing the author to design a Spline scene. The
+// "custom" scene falls through to spline_url and embeds an iframe so
+// authors who DO want their own Spline scene still have a path.
 //
-// Accepts either form of URL the spline.design dashboard hands authors:
-//
-//   https://my.spline.design/<id>/         (viewer)
-//   https://my.spline.design/<id>/embed    (explicit embed)
-//
-// We append /embed when missing so the rendered page doesn't show
-// Spline's own viewer chrome (logo, "open in spline" button).
+// Why CSS 3D over Spline by default:
+//   - 0KB JS runtime. Spline ships ~250-400KB per scene.
+//   - Renders in the editor preview immediately (no iframe lazy-load).
+//   - Looks intentional rather than blank-with-paste-url-please.
+
+export function SplineEmbed({ props }: { props: AnimationProps }) {
+  const scene = props.spline_scene ?? "cube";
+  const height = props.height_px ?? 320;
+  const colorVar: React.CSSProperties = {
+    ["--skit-3d-color" as never]: props.color || "var(--skit-anim-default-color, currentColor)",
+    minHeight: height,
+  };
+
+  if (scene === "custom") {
+    return <CustomSplineEmbed props={props} />;
+  }
+  return (
+    <div className="skit-3d" data-scene={scene} style={colorVar}>
+      {scene === "cube" && <CubeScene />}
+      {scene === "orbs" && <OrbsScene />}
+      {scene === "tower" && <TowerScene />}
+    </div>
+  );
+}
+
+function CubeScene() {
+  // Wireframe cube via 6 absolutely-positioned panels rotated into the
+  // 6 face positions. Container spins on Y + tumbles on X via CSS
+  // animation. Pure transforms; no JS.
+  return (
+    <div className="skit-3d-stage">
+      <div className="skit-3d-cube">
+        <span className="skit-3d-face skit-3d-face-front" />
+        <span className="skit-3d-face skit-3d-face-back" />
+        <span className="skit-3d-face skit-3d-face-right" />
+        <span className="skit-3d-face skit-3d-face-left" />
+        <span className="skit-3d-face skit-3d-face-top" />
+        <span className="skit-3d-face skit-3d-face-bottom" />
+      </div>
+    </div>
+  );
+}
+
+function OrbsScene() {
+  // Three orbs orbiting on a tilted plane. The orbit ring is drawn via
+  // CSS perspective; each orb is a radial-gradient circle that travels
+  // around the ring with phase offsets.
+  return (
+    <div className="skit-3d-stage">
+      <div className="skit-3d-orbits">
+        <span className="skit-3d-ring" aria-hidden />
+        <span className="skit-3d-orb skit-3d-orb-a" />
+        <span className="skit-3d-orb skit-3d-orb-b" />
+        <span className="skit-3d-orb skit-3d-orb-c" />
+        <span className="skit-3d-core" />
+      </div>
+    </div>
+  );
+}
+
+function TowerScene() {
+  // 5 stacked translucent panels at offsets, gently floating up/down
+  // out of phase with each other. Reads as "data tower / layered system".
+  return (
+    <div className="skit-3d-stage">
+      <div className="skit-3d-tower">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span
+            key={i}
+            className="skit-3d-panel"
+            style={{
+              ["--skit-3d-i" as never]: i,
+              ["--skit-3d-delay" as never]: `${i * -0.4}s`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---- Custom Spline iframe (advanced) ----
 
 function normalizeSplineUrl(input: string): string | null {
   const trimmed = (input || "").trim();
   if (!trimmed) return null;
-  // Allow protocol-relative or http for sandbox previews; default to https.
   let url: URL;
   try {
     url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
@@ -32,24 +106,17 @@ function normalizeSplineUrl(input: string): string | null {
     url.hostname.endsWith(".spline.design") ||
     url.hostname === "prod.spline.design";
   if (!okHost) return null;
-  // Strip query/hash, keep path; ensure it ends with /embed.
   const path = url.pathname.replace(/\/+$/, "");
   const embedded = path.endsWith("/embed") ? path : `${path}/embed`;
   return `https://${url.hostname}${embedded}`;
 }
 
-export function SplineEmbed({ props }: { props: AnimationProps }) {
+function CustomSplineEmbed({ props }: { props: AnimationProps }) {
   const src = normalizeSplineUrl(props.spline_url || "");
   const height = props.height_px ?? 480;
-
   if (!src) {
-    // No URL or unsafe host. Render a placeholder so the editor preview
-    // shows the section size instead of collapsing to zero height.
     return (
-      <div
-        className="skit-anim-spline-empty"
-        style={{ height, minHeight: 200 }}
-      >
+      <div className="skit-anim-spline-empty" style={{ height, minHeight: 200 }}>
         <span>
           {(props.spline_url || "").trim()
             ? "Unsupported Spline URL — must be on spline.design."
@@ -58,20 +125,13 @@ export function SplineEmbed({ props }: { props: AnimationProps }) {
       </div>
     );
   }
-
   return (
     <div className="skit-anim-spline-frame" style={{ height }}>
       <iframe
         src={src}
-        // Allow the Spline runtime to use webgl + accelerometer/gyroscope
-        // for tilt-controlled scenes. No fullscreen — we keep the embed
-        // sized to the section.
         allow="autoplay; clipboard-read; clipboard-write; gyroscope; accelerometer"
         loading="lazy"
         title={props.caption || "Spline 3D scene"}
-        // referrerpolicy=no-referrer keeps the host page URL out of
-        // Spline's analytics, which the author probably doesn't want
-        // leaking either way.
         referrerPolicy="no-referrer"
       />
     </div>

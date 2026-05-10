@@ -2,8 +2,11 @@
 
 import * as React from "react";
 import {
+  ANIMATION_3D_SCENE_META,
+  ANIMATION_3D_SCENES,
   ANIMATION_PRESET_META,
   ANIMATION_PRESETS,
+  type Animation3DScene,
   type AnimationPreset,
   type AnimationProps,
   type AnimationVariant,
@@ -36,47 +39,7 @@ export function AnimationSectionControls({
 
   return (
     <div className="space-y-3">
-      <div>
-        <Label>Layout</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <VariantTile
-            active={variant === "spline"}
-            label="Spline 3D"
-            onClick={() => patch({ variant: "spline" })}
-            glyph={
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth={1.4} strokeLinejoin="round" aria-hidden>
-                <path d="M24 6 L40 14 L40 34 L24 42 L8 34 L8 14 Z" />
-                <path d="M8 14 L24 22 L40 14" />
-                <path d="M24 22 L24 42" />
-              </svg>
-            }
-          />
-          <VariantTile
-            active={variant === "preset"}
-            label="Preset"
-            onClick={() => patch({ variant: "preset" })}
-            glyph={
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="currentColor" aria-hidden>
-                <path d="M24 6 C26 18, 30 22, 42 24 C30 26, 26 30, 24 42 C22 30, 18 26, 6 24 C18 22, 22 18, 24 6 Z" />
-              </svg>
-            }
-          />
-        </div>
-      </div>
-
-      {variant === "spline" && (
-        <div>
-          <Label>Spline embed URL</Label>
-          <input
-            value={value.spline_url ?? ""}
-            onChange={(e) => patch({ spline_url: e.target.value })}
-            placeholder="https://my.spline.design/abc123/"
-            spellCheck={false}
-            className={inputCls}
-          />
-          <Helper>Paste the public scene URL from spline.design — we auto-append /embed.</Helper>
-        </div>
-      )}
+      {variant === "spline" && <SplineFields value={value} patch={patch} />}
 
       {variant === "preset" && (
         <div>
@@ -289,6 +252,89 @@ function ColorPicker({
 
 // ---- Per-preset content fields ----
 
+function SplineFields({
+  value,
+  patch,
+}: {
+  value: AnimationProps;
+  patch: (diff: Partial<AnimationProps>) => void;
+}) {
+  const scene = value.spline_scene ?? "cube";
+  return (
+    <div>
+      <Label>3D scene</Label>
+      <div className="grid grid-cols-4 gap-1.5">
+        {ANIMATION_3D_SCENES.map((s) => {
+          const active = scene === s;
+          const meta = ANIMATION_3D_SCENE_META[s];
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => patch({ spline_scene: s })}
+              title={meta.description}
+              className={`flex flex-col items-center gap-1 rounded-md border px-2 py-3 transition-all ${
+                active
+                  ? "border-brand-purple bg-brand-purple/10 text-brand-purple shadow-sm"
+                  : "border-card-border bg-background text-muted hover:border-brand-purple/60 hover:text-foreground"
+              }`}
+            >
+              <span>{SCENE_GLYPH[s]}</span>
+              <span className="text-[11px] font-semibold">{meta.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <Helper>{ANIMATION_3D_SCENE_META[scene].description}</Helper>
+      {scene === "custom" && (
+        <div className="mt-3 rounded-md border border-card-border bg-background/40 p-3">
+          <Label>Spline embed URL</Label>
+          <input
+            value={value.spline_url ?? ""}
+            onChange={(e) => patch({ spline_url: e.target.value || undefined })}
+            placeholder="https://my.spline.design/abc123/"
+            spellCheck={false}
+            className={inputCls}
+          />
+          <Helper>Paste the public scene URL from spline.design — we auto-append /embed.</Helper>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SCENE_GLYPH: Record<Animation3DScene, React.ReactNode> = {
+  cube: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round" aria-hidden>
+      <path d="M12 3 L21 7.5 L21 16.5 L12 21 L3 16.5 L3 7.5 Z" />
+      <path d="M3 7.5 L12 12 L21 7.5" />
+      <path d="M12 12 L12 21" />
+    </svg>
+  ),
+  orbs: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round" aria-hidden>
+      <ellipse cx="12" cy="12" rx="9" ry="3.5" />
+      <circle cx="12" cy="12" r="2.4" fill="currentColor" />
+      <circle cx="3.5" cy="12" r="1.5" fill="currentColor" opacity="0.7" />
+      <circle cx="20.5" cy="12" r="1.2" fill="currentColor" opacity="0.5" />
+    </svg>
+  ),
+  tower: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round" aria-hidden>
+      <path d="M5 7 L12 4 L19 7 L12 10 Z" />
+      <path d="M5 12 L12 9 L19 12 L12 15 Z" opacity="0.7" />
+      <path d="M5 17 L12 14 L19 17 L12 20 Z" opacity="0.5" />
+    </svg>
+  ),
+  custom: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" aria-hidden>
+      <path d="M10 3 L14 3 L14 21 L10 21 Z" />
+      <path d="M3 7 L21 7" />
+      <path d="M3 17 L21 17" />
+    </svg>
+  ),
+};
+
 function CounterFields({
   value,
   patch,
@@ -425,33 +471,6 @@ function TypewriterFields({
 }
 
 // ---- Tiles + primitives ----
-
-function VariantTile({
-  active,
-  label,
-  glyph,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  glyph: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-lg border p-3 transition-all ${
-        active
-          ? "border-brand-purple bg-brand-purple/10 text-brand-purple shadow-sm"
-          : "border-card-border bg-background text-muted hover:border-brand-purple/60 hover:text-foreground"
-      }`}
-    >
-      <span>{glyph}</span>
-      <span className="text-[11px] font-semibold">{label}</span>
-    </button>
-  );
-}
 
 function PresetTile({
   active,
