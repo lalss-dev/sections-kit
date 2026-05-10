@@ -288,12 +288,13 @@
   align-items: center;
   justify-content: center;
   perspective: 1100px;
-  /* Auto-scale: shrink the entire scene when the section is shorter than
-     the scene's natural height. --skit-anim-h is set inline by the kit
-     from props.height_px; --skit-anim-natural-h defaults to 360px and
-     each scene can override it. */
+  /* Auto-scale: shrink OR grow the scene to track the section height.
+     --skit-anim-h is set inline by the kit from props.height_px;
+     --skit-anim-natural-h defaults to 360px and each scene can override
+     it. clamp(0.6, ratio, 2) caps the scale so XL (~720px) reads as a
+     properly large hero without blowing up past the section's width. */
   --skit-anim-natural-h: 360px;
-  transform: scale(min(1, calc(var(--skit-anim-h, 360px) / var(--skit-anim-natural-h, 360px))));
+  transform: scale(clamp(0.6, calc(var(--skit-anim-h, 360px) / var(--skit-anim-natural-h, 360px)), 2));
   transform-origin: center;
 }
 /* Per-scene natural heights (= the height at which the scene looks
@@ -376,19 +377,13 @@
   transform-style: preserve-3d;
 }
 .skit-3d-stats-platform {
-  /* Was a circular ring rotated rotateX(80deg) on top of the parent's
-     rotateX(20deg) — at that combined angle it foreshortened into a
-     single vertical dashed stripe (Bilal's "line out of nowhere").
-     Now drawn natively as a tall ellipse on the same plane as the
-     badges, so it reads as the implied platform without extra rotation. */
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  bottom: 22%;
-  height: 36%;
-  border: 1.5px dashed color-mix(in srgb, var(--skit-3d-color, currentColor) 28%, transparent);
-  border-radius: 50%;
-  pointer-events: none;
+  /* Removed entirely. Two passes (rotated dashed circle, then a tilted
+     ellipse) both rendered as a single dashed stripe on the parent's
+     20deg tilt because the visible aperture of the ring is so narrow
+     end-on. The 3 stat badges with their translateZ offsets already
+     read as a floating arrangement without needing the implied ground.
+     Selector kept so existing JSX renders nothing instead of crashing. */
+  display: none;
 }
 .skit-3d-stat-badge {
   position: absolute;
