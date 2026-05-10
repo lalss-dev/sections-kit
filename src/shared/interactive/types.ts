@@ -15,6 +15,9 @@ export const INTERACTIVE_EFFECTS = [
 ] as const;
 export type InteractiveEffect = (typeof INTERACTIVE_EFFECTS)[number];
 
+export const INTERACTIVE_SIZES = ["small", "medium", "large"] as const;
+export type InteractiveSize = (typeof INTERACTIVE_SIZES)[number];
+
 export const INTERACTIVE_EFFECT_META: Record<
   InteractiveEffect,
   { label: string; description: string; tier: "free" | "premium" }

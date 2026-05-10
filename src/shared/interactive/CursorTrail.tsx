@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { InteractiveSize } from "./types.js";
 
 // CursorTrail — every mousemove samples the pointer position and
 // drops a dot that fades out. Throttled via rAF so it stays at one
@@ -12,15 +13,26 @@ import { useEffect, useRef } from "react";
 // Listener is scoped to the closest `.lp-root` ancestor of the layer
 // — only mousemoves over the actual page content spawn dots.
 
-const LIFETIME = 800;
+const SIZE_PRESETS: Record<InteractiveSize, { dot: number; lifetime: number }> = {
+  small:  { dot: 5,  lifetime: 500 },
+  medium: { dot: 8,  lifetime: 800 },
+  large:  { dot: 14, lifetime: 1200 },
+};
 
-export function CursorTrail({ color }: { color?: string } = {}) {
+export function CursorTrail({
+  color,
+  size = "medium",
+}: {
+  color?: string;
+  size?: InteractiveSize;
+} = {}) {
   const layerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
     const scope = layer.parentElement?.closest(".lp-root") ?? document;
+    const preset = SIZE_PRESETS[size];
 
     let rafId: number | null = null;
     let lastX = 0;
@@ -38,27 +50,36 @@ export function CursorTrail({ color }: { color?: string } = {}) {
       rafId = null;
       if (!pending) return;
       pending = false;
-      spawn(layer!, lastX, lastY, color);
+      spawn(layer!, lastX, lastY, color, preset);
     }
     scope.addEventListener("mousemove", onMove);
     return () => {
       scope.removeEventListener("mousemove", onMove);
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [color]);
+  }, [color, size]);
 
   return <div ref={layerRef} className="skit-fx-cursor-trail" aria-hidden />;
 }
 
-function spawn(layer: HTMLDivElement, x: number, y: number, color?: string) {
+function spawn(
+  layer: HTMLDivElement,
+  x: number,
+  y: number,
+  color: string | undefined,
+  preset: { dot: number; lifetime: number },
+) {
   const dot = document.createElement("span");
   dot.className = "skit-fx-trail-dot";
   dot.style.left = `${x}px`;
   dot.style.top = `${y}px`;
+  dot.style.width = `${preset.dot}px`;
+  dot.style.height = `${preset.dot}px`;
+  dot.style.animationDuration = `${preset.lifetime}ms`;
   if (color) {
     dot.style.background = color;
-    dot.style.boxShadow = `0 0 8px ${color}`;
+    dot.style.boxShadow = `0 0 ${preset.dot + 2}px ${color}`;
   }
   layer.appendChild(dot);
-  setTimeout(() => dot.remove(), LIFETIME);
+  setTimeout(() => dot.remove(), preset.lifetime);
 }
