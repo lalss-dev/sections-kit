@@ -21,27 +21,31 @@ import {
 // onChange that receives the FULL next props object.
 
 export function AnimationSectionControls({
+  variant,
   value,
   onChange,
 }: {
+  // Section-level variant (spline | preset). Pass `section.variant`
+  // directly — the kit never reads props.variant so there's no risk
+  // of the two drifting out of sync.
+  variant?: AnimationVariant;
   value: AnimationProps;
   onChange: (next: AnimationProps) => void;
 }) {
-  const variant: AnimationVariant = value.variant ?? "preset";
+  const v: AnimationVariant = variant ?? value.variant ?? "preset";
   const preset: AnimationPreset = value.preset ?? "counter";
 
   function patch(diff: Partial<AnimationProps>) {
-    const next = { ...value, ...diff };
-    // Keep variant in sync if the diff included it (defensive).
-    if (diff.variant) next.variant = diff.variant;
-    onChange(next);
+    // Always stamp the current variant onto props so storage stays
+    // self-consistent even if the consumer forgets to mirror it.
+    onChange({ ...value, ...diff, variant: v });
   }
 
   return (
     <div className="space-y-3">
-      {variant === "spline" && <SplineFields value={value} patch={patch} />}
+      {v === "spline" && <SplineFields value={value} patch={patch} />}
 
-      {variant === "preset" && (
+      {v === "preset" && (
         <div>
           <Label>Preset</Label>
           <div className="grid grid-cols-3 gap-2">
