@@ -63,21 +63,24 @@
 }
 
 /* ============================================================
-   SPARKLE — three rotating + scale-pulsing stars.
+   SPARKLE — hero + two satellite twinkles. Each <g> is positioned
+   by its outer wrapper (translate+scale) and spins around its OWN
+   origin (0,0) so transform-origin is implicit. The path is drawn
+   centered on (0,0) so rotation happens in place.
    ============================================================ */
 .skit-sparkle-star path { fill: var(--skit-anim-color, currentColor); }
 .skit-sparkle-star {
-  transform-origin: center;
-  transform-box: fill-box;
-  animation: skit-sparkle-spin 3.6s ease-in-out infinite;
+  transform-origin: 0 0;
+  animation: skit-sparkle-twinkle 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
-.skit-sparkle-star-a { animation-delay: 0s;     opacity: 0.95; }
-.skit-sparkle-star-b { animation-delay: -0.9s;  opacity: 0.7; transform-origin: 180px 100px; }
-.skit-sparkle-star-c { animation-delay: -1.8s;  opacity: 0.55; transform-origin: 60px 200px; }
+.skit-sparkle-star-a { animation-delay: 0s;    opacity: 0.95; }
+.skit-sparkle-star-b { animation-delay: -1.4s; opacity: 0.78; }
+.skit-sparkle-star-c { animation-delay: -2.6s; opacity: 0.65; }
 
-@keyframes skit-sparkle-spin {
-  0%, 100% { transform: rotate(0deg)   scale(0.85); }
-  50%      { transform: rotate(180deg) scale(1.05); }
+@keyframes skit-sparkle-twinkle {
+  0%, 100% { transform: rotate(0deg)  scale(0.78); }
+  35%      { transform: rotate(45deg) scale(1.06); }
+  60%      { transform: rotate(75deg) scale(0.92); }
 }
 
 /* ============================================================

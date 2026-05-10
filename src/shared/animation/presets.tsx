@@ -36,20 +36,33 @@ export function PresetRender({ props }: { props: AnimationProps }) {
 
 // ---------- Individual presets ----------
 
+// 4-point sparkle/twinkle drawn around (0,0) so each star can spin
+// in place via SVG transform on its own <g>. Concave Bezier sides
+// give it the "burst" feel rather than a flat polygon.
+const SPARKLE_PATH =
+  "M 0 -50 C 7 -10 10 -7 50 0 C 10 7 7 10 0 50 C -7 10 -10 7 -50 0 C -10 -7 -7 -10 0 -50 Z";
+
 function Sparkle() {
-  // Three stars, each at a different scale and rotation phase so the
-  // cluster reads as alive. transform-origin: 50% 50% is implicit on
-  // SVG <g>.
+  // One hero + two satellites. Each star is drawn around its own
+  // origin then placed via translate+scale on the wrapper, so the
+  // CSS rotation / pulse on the inner <g> spins it in place instead
+  // of orbiting some far-off transform-origin.
   return (
     <svg viewBox="0 0 240 240" className="skit-anim-svg" aria-hidden>
-      <g className="skit-sparkle-star skit-sparkle-star-a">
-        <path d="M120 30 L132 105 L210 120 L132 135 L120 210 L108 135 L30 120 L108 105 Z" />
+      <g transform="translate(120 122) scale(0.95)">
+        <g className="skit-sparkle-star skit-sparkle-star-a">
+          <path d={SPARKLE_PATH} />
+        </g>
       </g>
-      <g className="skit-sparkle-star skit-sparkle-star-b">
-        <path d="M180 60 L188 95 L222 100 L188 105 L180 140 L172 105 L138 100 L172 95 Z" />
+      <g transform="translate(192 60) scale(0.42)">
+        <g className="skit-sparkle-star skit-sparkle-star-b">
+          <path d={SPARKLE_PATH} />
+        </g>
       </g>
-      <g className="skit-sparkle-star skit-sparkle-star-c">
-        <path d="M60 170 L66 196 L92 200 L66 204 L60 230 L54 204 L28 200 L54 196 Z" />
+      <g transform="translate(54 188) scale(0.32)">
+        <g className="skit-sparkle-star skit-sparkle-star-c">
+          <path d={SPARKLE_PATH} />
+        </g>
       </g>
     </svg>
   );
