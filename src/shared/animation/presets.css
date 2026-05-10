@@ -493,13 +493,19 @@
 /* ---- 3D CARD — glass card tilted, lifts on cursor ---- */
 .skit-3d-card-tilt {
   perspective: 1200px;
+  /* Smaller base tilt (was 8°/-12°). The original lean was loud
+     enough that even a centered card looked off-axis with no cursor
+     interaction. New base reads as gently-tilted, cursor parallax
+     adds the swing. */
   transform:
-    rotateX(calc(8deg + var(--skit-3d-tilt-x, 0deg) * 0.7))
-    rotateY(calc(-12deg + var(--skit-3d-tilt-y, 0deg) * 0.7));
+    rotateX(calc(4deg + var(--skit-3d-tilt-x, 0deg) * 0.7))
+    rotateY(calc(-6deg + var(--skit-3d-tilt-y, 0deg) * 0.7));
 }
 .skit-3d-card {
   position: relative;
-  width: min(520px, 92%);
+  /* Wider so the card fills more of the section. Was 520px which
+     left ~30%+ empty on either side at the default page max-width. */
+  width: min(680px, 92%);
   padding: 32px 32px 28px;
   border-radius: 22px;
   border: 1px solid color-mix(in srgb, var(--skit-3d-color, currentColor) 30%, transparent);
