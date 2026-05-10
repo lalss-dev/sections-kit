@@ -92,6 +92,7 @@
   text-transform: uppercase;
   color: rgba(127, 127, 127, 0.85);
   text-align: center;
+  white-space: pre-wrap;
 }
 
 /* ============================================================
@@ -158,6 +159,7 @@
   letter-spacing: -0.02em;
   text-align: center;
   max-width: 90%;
+  white-space: pre-wrap;
 }
 .skit-typewriter-prefix,
 .skit-typewriter-suffix {

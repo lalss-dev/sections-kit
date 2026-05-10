@@ -101,38 +101,188 @@ export function AnimationSectionControls({
         </div>
       )}
 
-      <div>
-        <Label>Height (px)</Label>
-        <input
-          type="number"
-          min={120}
-          max={1200}
-          step={20}
-          value={value.height_px ?? 320}
-          onChange={(e) => patch({ height_px: Math.max(120, Number(e.target.value) || 320) })}
-          className={inputCls}
-        />
-      </div>
+      <HeightChips value={value.height_px} onChange={(v) => patch({ height_px: v })} />
+
+      <ColorPicker
+        label="Color"
+        value={value.color}
+        onChange={(v) => patch({ color: v })}
+        helper="Leave empty to inherit the page theme accent."
+      />
 
       <div>
-        <Label>Color (optional)</Label>
-        <input
-          value={value.color ?? ""}
-          onChange={(e) => patch({ color: e.target.value || undefined })}
-          placeholder="#ff6b6b — leave blank for theme accent"
-          className={inputCls}
-        />
-      </div>
-
-      <div>
-        <Label>Caption (optional)</Label>
-        <input
+        <Label>Caption</Label>
+        <AutoGrowTextarea
           value={value.caption ?? ""}
-          onChange={(e) => patch({ caption: e.target.value || undefined })}
-          placeholder="rendered below in small mono caps"
-          className={inputCls}
+          onChange={(v) => patch({ caption: v || undefined })}
+          placeholder="optional — small mono caps under the animation"
         />
       </div>
+    </div>
+  );
+}
+
+// Auto-grow textarea — height tracks content. Enter inserts a newline
+// (no implicit submit anywhere in the kit), Shift+Enter same. Used for
+// any field where authors may want multi-line marketing copy.
+function AutoGrowTextarea({
+  value,
+  onChange,
+  placeholder,
+  minRows = 1,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder?: string;
+  minRows?: number;
+}) {
+  const ref = React.useRef<HTMLTextAreaElement | null>(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={minRows}
+      spellCheck={false}
+      className={`${inputCls} resize-none overflow-hidden leading-snug`}
+    />
+  );
+}
+
+// ---- Click-driven height + color so authors don't have to type ----
+
+const HEIGHT_PRESETS: { value: number; label: string }[] = [
+  { value: 240, label: "S" },
+  { value: 320, label: "M" },
+  { value: 480, label: "L" },
+  { value: 720, label: "XL" },
+];
+
+function HeightChips({
+  value,
+  onChange,
+}: {
+  value?: number;
+  onChange: (next: number) => void;
+}) {
+  const current = value ?? 320;
+  const matchedPreset = HEIGHT_PRESETS.find((p) => p.value === current);
+  const [customMode, setCustomMode] = React.useState(!matchedPreset);
+  React.useEffect(() => {
+    setCustomMode(!HEIGHT_PRESETS.some((p) => p.value === current));
+  }, [current]);
+
+  return (
+    <div>
+      <Label>Height</Label>
+      <div className="grid grid-cols-5 gap-1.5">
+        {HEIGHT_PRESETS.map((p) => {
+          const active = !customMode && current === p.value;
+          return (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => {
+                setCustomMode(false);
+                onChange(p.value);
+              }}
+              title={`${p.value}px`}
+              className={`rounded-md border px-2 py-2 text-[11px] font-semibold transition-all ${
+                active
+                  ? "border-brand-purple bg-brand-purple/10 text-brand-purple"
+                  : "border-card-border bg-background text-muted hover:border-brand-purple/60 hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setCustomMode(true)}
+          className={`rounded-md border px-2 py-2 text-[11px] font-semibold transition-all ${
+            customMode
+              ? "border-brand-purple bg-brand-purple/10 text-brand-purple"
+              : "border-card-border bg-background text-muted hover:border-brand-purple/60 hover:text-foreground"
+          }`}
+        >
+          Custom
+        </button>
+      </div>
+      {customMode && (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="range"
+            min={120}
+            max={900}
+            step={10}
+            value={current}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="flex-1 accent-brand-purple"
+          />
+          <input
+            type="number"
+            min={120}
+            max={1200}
+            step={10}
+            value={current}
+            onChange={(e) => onChange(Math.max(120, Number(e.target.value) || 320))}
+            className={`${inputCls} w-20 text-center`}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ColorPicker({
+  label,
+  value,
+  onChange,
+  helper,
+}: {
+  label: string;
+  value: string | undefined;
+  onChange: (next: string | undefined) => void;
+  helper?: string;
+}) {
+  const hex = /^#[0-9a-f]{6}$/i.exec(value ?? "")?.[0] ?? "#a855f7";
+  const isSet = !!value;
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={hex}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded-md border border-card-border bg-card"
+        />
+        <input
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value || undefined)}
+          placeholder="theme accent"
+          className={`${inputCls} flex-1 font-mono text-xs`}
+        />
+        {isSet && (
+          <button
+            type="button"
+            onClick={() => onChange(undefined)}
+            className="rounded-md border border-card-border bg-background px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted transition-all hover:border-brand-purple/60 hover:text-foreground"
+            title="Use page theme accent"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+      {helper && <Helper>{helper}</Helper>}
     </div>
   );
 }
@@ -181,11 +331,10 @@ function CounterFields({
       </div>
       <div>
         <Label>Label under number</Label>
-        <input
+        <AutoGrowTextarea
           value={value.counter_label ?? ""}
-          onChange={(e) => patch({ counter_label: e.target.value || undefined })}
+          onChange={(v) => patch({ counter_label: v || undefined })}
           placeholder="happy customers"
-          className={inputCls}
         />
       </div>
     </div>
@@ -248,11 +397,10 @@ function TypewriterFields({
     <div className="mt-3 space-y-2 rounded-md border border-card-border bg-background/40 p-3">
       <div>
         <Label>Prefix (static)</Label>
-        <input
+        <AutoGrowTextarea
           value={value.typewriter_prefix ?? ""}
-          onChange={(e) => patch({ typewriter_prefix: e.target.value || undefined })}
+          onChange={(v) => patch({ typewriter_prefix: v || undefined })}
           placeholder="Kami bantu kamu"
-          className={inputCls}
         />
       </div>
       <div>
@@ -266,11 +414,10 @@ function TypewriterFields({
       </div>
       <div>
         <Label>Suffix (static, optional)</Label>
-        <input
+        <AutoGrowTextarea
           value={value.typewriter_suffix ?? ""}
-          onChange={(e) => patch({ typewriter_suffix: e.target.value || undefined })}
+          onChange={(v) => patch({ typewriter_suffix: v || undefined })}
           placeholder="bisnismu"
-          className={inputCls}
         />
       </div>
     </div>
