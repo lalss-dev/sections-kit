@@ -360,6 +360,10 @@
 
 /* ---- 3D COUNTER ---- */
 .skit-3d-counter-tilt {
+  /* No tilt when interactive_3d is "off" (no data-interactive attr).
+     Otherwise the base rotation gets applied + cursor parallax adds. */
+}
+.skit-3d-counter-tilt[data-interactive] {
   transform:
     rotateX(calc(-12deg + var(--skit-3d-tilt-x, 0deg)))
     rotateY(calc(-18deg + var(--skit-3d-tilt-y, 0deg)));
@@ -400,8 +404,12 @@
 /* ---- 3D STATS (rewritten 2026-05-10) — 3 flat-facing cards in a
    flexbox row with subtle Z-stagger. No per-card rotateY so cursor
    parallax tilts them as one plane instead of fanning. Tilt magnitude
-   dampened to 60% so even Dramatic feels controlled.  ---- */
+   dampened to 60% so even Dramatic feels controlled. Tilt is gated
+   on data-interactive so "off" shows the cards flat and centered.  ---- */
 .skit-3d-stats-tilt {
+  /* No tilt when interactive=off. */
+}
+.skit-3d-stats-tilt[data-interactive] {
   transform:
     rotateX(calc(6deg + var(--skit-3d-tilt-x, 0deg) * 0.6))
     rotateY(calc(var(--skit-3d-tilt-y, 0deg) * 0.6));
@@ -490,13 +498,13 @@
   opacity: 0.85;
 }
 
-/* ---- 3D CARD — glass card tilted, lifts on cursor ---- */
+/* ---- 3D CARD — glass card; flat and centered when interactive=off,
+   gently tilted with cursor parallax when interactive is on.  ---- */
 .skit-3d-card-tilt {
   perspective: 1200px;
-  /* Smaller base tilt (was 8°/-12°). The original lean was loud
-     enough that even a centered card looked off-axis with no cursor
-     interaction. New base reads as gently-tilted, cursor parallax
-     adds the swing. */
+  /* No tilt when interactive=off. Card sits flat, centered. */
+}
+.skit-3d-card-tilt[data-interactive] {
   transform:
     rotateX(calc(4deg + var(--skit-3d-tilt-x, 0deg) * 0.7))
     rotateY(calc(-6deg + var(--skit-3d-tilt-y, 0deg) * 0.7));
