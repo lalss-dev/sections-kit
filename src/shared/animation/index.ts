@@ -1,18 +1,4 @@
-// Public surface for the animation section. Hosts import:
-//
-//   import {
-//     AnimationRender,
-//     defaultAnimationProps,
-//     ANIMATION_PRESET_META,
-//     type AnimationProps,
-//     type AnimationVariant,
-//     type AnimationPreset,
-//     type AnimationSectionFields,
-//   } from "@lalss/sections-kit/animation";
-//
-// The CSS for both variants ships in @lalss/sections-kit/styles.css —
-// import that once at the host's app shell so the keyframes are
-// available wherever the kit renders.
+// Public surface for the animation section.
 
 export {
   ANIMATION_VARIANTS,
@@ -20,12 +6,23 @@ export {
   ANIMATION_PRESET_META,
   ANIMATION_3D_SCENES,
   ANIMATION_3D_SCENE_META,
+  COUNTER_LAYOUTS,
+  MARQUEE_DIRECTIONS,
+  MARQUEE_ROWS,
+  MARQUEE_STYLES,
+  TYPEWRITER_HIGHLIGHTS,
   defaultAnimationProps,
   type AnimationVariant,
   type AnimationPreset,
   type Animation3DScene,
   type AnimationProps,
   type AnimationSectionFields,
+  type CounterLayout,
+  type CounterStat,
+  type MarqueeDirection,
+  type MarqueeRows,
+  type MarqueeStyle,
+  type TypewriterHighlight,
 } from "./types.js";
 export { AnimationRender } from "./render.js";
 export { SplineEmbed } from "./spline.js";

@@ -14,7 +14,7 @@
   color: var(--skit-anim-color, currentColor);
 }
 
-/* Spline embed frame (lives next to presets but used by spline.tsx) */
+/* Spline embed frame (used by spline.tsx for variant="spline" + custom). */
 .skit-anim-spline-frame {
   position: relative;
   width: 100%;
@@ -43,7 +43,7 @@
   text-transform: uppercase;
 }
 
-/* Caption rendered below an animation block (presets + spline). */
+/* Caption rendered below an animation block. */
 .skit-anim-caption {
   display: block;
   margin-top: 12px;
@@ -56,15 +56,34 @@
 }
 
 /* ============================================================
-   COUNTER — huge number (count-up driven by JS) + caption-style label.
+   COUNTER — 1, 2, or 3 stats. Single = oversized hero number;
+   pair/trio scale down so multiple stats fit comfortably.
    ============================================================ */
-.skit-counter {
+.skit-counter-grid {
+  display: grid;
+  width: 100%;
+  gap: 32px;
+  padding: 32px 16px;
+  align-items: center;
+  justify-items: center;
+}
+.skit-counter-grid-single { grid-template-columns: 1fr; }
+.skit-counter-grid-pair   { grid-template-columns: 1fr 1fr; }
+.skit-counter-grid-trio   { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 640px) {
+  .skit-counter-grid-pair,
+  .skit-counter-grid-trio {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.skit-counter-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 24px 16px;
-  width: 100%;
+  gap: 8px;
+  text-align: center;
 }
 .skit-counter-number {
   display: inline-flex;
@@ -72,11 +91,13 @@
   gap: 4px;
   font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
   font-weight: 700;
-  font-size: clamp(64px, 14vw, 144px);
   line-height: 1;
   letter-spacing: -0.04em;
   color: var(--skit-anim-color, currentColor);
 }
+.skit-counter-cell-hero  .skit-counter-number { font-size: clamp(64px, 14vw, 144px); }
+.skit-counter-cell-small .skit-counter-number { font-size: clamp(40px, 7vw, 80px); }
+
 .skit-counter-affix {
   font-size: 0.55em;
   font-weight: 600;
@@ -96,18 +117,25 @@
 }
 
 /* ============================================================
-   MARQUEE — endless ticker. Two copies of items concat'd; track
-   translates from 0 to -50% and back to 0 seamlessly.
+   MARQUEE — endless ticker(s). Supports 1 or 2 rows; second row
+   reverses direction. Two style modes: clean (text + bullet) and
+   pill (rounded chips).
    ============================================================ */
 .skit-marquee {
   width: 100%;
-  overflow: hidden;
-  padding: 28px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 0;
   mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
 .skit-marquee[data-placeholder] {
   opacity: 0.55;
+}
+.skit-marquee-row {
+  width: 100%;
+  overflow: hidden;
 }
 .skit-marquee-track {
   display: inline-flex;
@@ -123,7 +151,8 @@
   gap: 24px;
   padding-right: 24px;
 }
-.skit-marquee-text {
+/* Clean style: oversized text + bullet */
+.skit-marquee-style-clean .skit-marquee-text {
   font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
   font-weight: 700;
   font-size: clamp(28px, 5vw, 56px);
@@ -131,10 +160,30 @@
   text-transform: uppercase;
   color: var(--skit-anim-color, currentColor);
 }
-.skit-marquee-bullet {
+.skit-marquee-style-clean[data-rows="2"] .skit-marquee-text {
+  font-size: clamp(22px, 4vw, 42px);
+}
+.skit-marquee-style-clean .skit-marquee-bullet {
   font-size: clamp(28px, 5vw, 56px);
   color: var(--skit-anim-color, currentColor);
   opacity: 0.45;
+}
+.skit-marquee-style-clean[data-rows="2"] .skit-marquee-bullet {
+  font-size: clamp(22px, 4vw, 42px);
+}
+/* Pill style: rounded chips */
+.skit-marquee-style-pill .skit-marquee-pill {
+  display: inline-block;
+  padding: 10px 22px;
+  border: 1.5px solid color-mix(in srgb, var(--skit-anim-color, currentColor) 70%, transparent);
+  border-radius: 999px;
+  font-family: var(--lp-mono-font, var(--lpg-body-font, monospace));
+  font-weight: 600;
+  font-size: clamp(12px, 1.6vw, 16px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--skit-anim-color, currentColor);
+  background: color-mix(in srgb, var(--skit-anim-color, currentColor) 6%, transparent);
 }
 @keyframes skit-marquee-scroll {
   from { transform: translateX(0); }
@@ -142,7 +191,7 @@
 }
 
 /* ============================================================
-   TYPEWRITER — prefix + cycling typed word + caret.
+   TYPEWRITER — prefix + cycling word + caret + 4 highlight styles.
    ============================================================ */
 .skit-typewriter {
   display: flex;
@@ -167,10 +216,40 @@
   opacity: 0.85;
 }
 .skit-typewriter-word {
-  color: var(--skit-anim-color, currentColor);
-  border-bottom: 0.08em solid var(--skit-anim-color, currentColor);
-  padding-bottom: 0.04em;
+  display: inline-block;
   white-space: nowrap;
+  color: var(--skit-anim-color, currentColor);
+  padding-bottom: 0.04em;
+}
+/* underline (default) */
+.skit-typewriter-hl-underline {
+  border-bottom: 0.08em solid var(--skit-anim-color, currentColor);
+}
+/* box */
+.skit-typewriter-hl-box {
+  padding: 0.05em 0.3em;
+  border: 0.06em solid var(--skit-anim-color, currentColor);
+  border-radius: 0.18em;
+}
+/* brackets */
+.skit-typewriter-hl-brackets .skit-typewriter-bracket {
+  color: var(--skit-anim-color, currentColor);
+  opacity: 0.7;
+  margin: 0 0.1em;
+}
+/* gradient — fill the word with an accent gradient */
+.skit-typewriter-hl-gradient .skit-typewriter-word-text,
+.skit-typewriter-hl-gradient .skit-typewriter-caret {
+  background: linear-gradient(
+    100deg,
+    var(--skit-anim-color, currentColor) 0%,
+    color-mix(in srgb, var(--skit-anim-color, currentColor) 60%, white) 50%,
+    var(--skit-anim-color, currentColor) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 .skit-typewriter-caret {
   display: inline-block;
@@ -184,8 +263,9 @@
 }
 
 /* ============================================================
-   3D scenes — pure CSS 3D transforms, no JS. Stage establishes
-   perspective; each scene draws its own primitives.
+   3D scenes — pure CSS 3D for variant="spline" (counter / stats /
+   card). Each scene is content-bearing — they show real numbers
+   or copy, just rendered with depth + tilt.
    ============================================================ */
 
 .skit-3d {
@@ -205,119 +285,172 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 900px;
+  perspective: 1100px;
 }
 
-/* ---- CUBE ---- */
-.skit-3d-cube {
-  position: relative;
-  width: 160px;
-  height: 160px;
+/* ---- 3D COUNTER ---- */
+.skit-3d-counter {
+  transform: rotateX(-12deg) rotateY(-18deg);
   transform-style: preserve-3d;
-  animation: skit-3d-cube-spin 14s linear infinite;
+  text-align: center;
+  animation: skit-3d-counter-tilt 8s ease-in-out infinite;
 }
-.skit-3d-face {
-  position: absolute;
-  inset: 0;
-  border: 1.5px solid var(--skit-3d-color, currentColor);
-  background: color-mix(in srgb, var(--skit-3d-color, currentColor) 6%, transparent);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--skit-3d-color, currentColor) 18%, transparent);
+.skit-3d-counter-number {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
+  font-weight: 800;
+  font-size: clamp(96px, 16vw, 200px);
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: var(--skit-3d-color, currentColor);
+  text-shadow:
+    0 1px 0  color-mix(in srgb, var(--skit-3d-color, currentColor) 60%, black),
+    0 2px 0  color-mix(in srgb, var(--skit-3d-color, currentColor) 50%, black),
+    0 4px 0  color-mix(in srgb, var(--skit-3d-color, currentColor) 40%, black),
+    0 8px 14px color-mix(in srgb, var(--skit-3d-color, currentColor) 30%, transparent),
+    0 16px 32px color-mix(in srgb, var(--skit-3d-color, currentColor) 20%, transparent);
 }
-.skit-3d-face::before {
-  content: "";
-  position: absolute;
-  inset: 12px;
-  border: 1px dashed color-mix(in srgb, var(--skit-3d-color, currentColor) 35%, transparent);
+.skit-3d-counter-affix {
+  font-size: 0.45em;
+  opacity: 0.85;
 }
-.skit-3d-face-front  { transform: translateZ(80px); }
-.skit-3d-face-back   { transform: rotateY(180deg) translateZ(80px); }
-.skit-3d-face-right  { transform: rotateY(90deg)  translateZ(80px); }
-.skit-3d-face-left   { transform: rotateY(-90deg) translateZ(80px); }
-.skit-3d-face-top    { transform: rotateX(90deg)  translateZ(80px); }
-.skit-3d-face-bottom { transform: rotateX(-90deg) translateZ(80px); }
-@keyframes skit-3d-cube-spin {
-  0%   { transform: rotateY(0deg)   rotateX(-12deg); }
-  50%  { transform: rotateY(180deg) rotateX(12deg); }
-  100% { transform: rotateY(360deg) rotateX(-12deg); }
+.skit-3d-counter-value { font-variant-numeric: tabular-nums; }
+.skit-3d-counter-label {
+  margin-top: 16px;
+  font-family: var(--lp-mono-font, var(--lpg-body-font, monospace));
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+@keyframes skit-3d-counter-tilt {
+  0%, 100% { transform: rotateX(-14deg) rotateY(-22deg); }
+  50%      { transform: rotateX(-10deg) rotateY(-14deg); }
 }
 
-/* ---- ORBS ---- */
-.skit-3d-orbits {
+/* ---- 3D STATS — 3 floating badges on a tilted plane ---- */
+.skit-3d-stats {
   position: relative;
-  width: 360px;
-  height: 360px;
+  width: min(640px, 92%);
+  height: 280px;
   transform-style: preserve-3d;
-  transform: rotateX(60deg);
+  transform: rotateX(20deg);
 }
-.skit-3d-ring {
+.skit-3d-stats-platform {
   position: absolute;
-  inset: 0;
+  inset: 30% 5% 0 5%;
   border: 1.5px dashed color-mix(in srgb, var(--skit-3d-color, currentColor) 35%, transparent);
   border-radius: 50%;
+  transform: rotateX(80deg);
 }
-.skit-3d-core {
+.skit-3d-stat-badge {
   position: absolute;
-  top: 50%; left: 50%;
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%) rotateX(-60deg);
-  background: radial-gradient(
-    circle at 30% 30%,
-    color-mix(in srgb, var(--skit-3d-color, currentColor) 95%, white) 0%,
-    var(--skit-3d-color, currentColor) 60%,
-    color-mix(in srgb, var(--skit-3d-color, currentColor) 60%, transparent) 100%
-  );
-  box-shadow: 0 0 32px color-mix(in srgb, var(--skit-3d-color, currentColor) 55%, transparent);
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  margin: -64px 0 0 -90px;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--skit-3d-color, currentColor) 35%, transparent);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--skit-3d-color, currentColor) 14%, transparent) 0%,
+      color-mix(in srgb, var(--skit-3d-color, currentColor) 6%, transparent) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 8px 28px color-mix(in srgb, var(--skit-3d-color, currentColor) 28%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 30%, transparent);
+  text-align: center;
+  animation: skit-3d-stat-float 6.8s ease-in-out infinite;
+  transform-style: preserve-3d;
 }
-.skit-3d-orb {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 22px; height: 22px;
-  margin: -11px 0 0 -11px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 30% 30%,
-    color-mix(in srgb, var(--skit-3d-color, currentColor) 90%, white) 0%,
-    var(--skit-3d-color, currentColor) 70%
-  );
-  box-shadow: 0 0 18px color-mix(in srgb, var(--skit-3d-color, currentColor) 70%, transparent);
-  animation: skit-3d-orb-orbit 5.5s linear infinite;
+.skit-3d-stat-badge-a { transform: translateX(-220px) translateY(-30px) translateZ(40px) rotateY(18deg); animation-delay: 0s; }
+.skit-3d-stat-badge-b { transform: translateY(0)               translateZ(80px); animation-delay: -2.2s; }
+.skit-3d-stat-badge-c { transform: translateX(220px) translateY(-30px) translateZ(40px) rotateY(-18deg); animation-delay: -4.4s; }
+@keyframes skit-3d-stat-float {
+  0%, 100% { translate: 0 0;   }
+  50%      { translate: 0 -10px; }
 }
-.skit-3d-orb-a { animation-delay: 0s; }
-.skit-3d-orb-b { animation-delay: -1.83s; }
-.skit-3d-orb-c { animation-delay: -3.66s; opacity: 0.85; }
-@keyframes skit-3d-orb-orbit {
-  from { transform: rotate(0deg)   translateX(170px) rotate(0deg); }
-  to   { transform: rotate(360deg) translateX(170px) rotate(-360deg); }
+.skit-3d-stat-value {
+  font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
+  font-weight: 800;
+  font-size: 38px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--skit-3d-color, currentColor);
+}
+.skit-3d-stat-affix {
+  font-size: 0.55em;
+  opacity: 0.85;
+}
+.skit-3d-stat-label {
+  margin-top: 8px;
+  font-family: var(--lp-mono-font, var(--lpg-body-font, monospace));
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.85;
 }
 
-/* ---- TOWER ---- */
-.skit-3d-tower {
-  position: relative;
-  width: 220px;
-  height: 220px;
-  transform-style: preserve-3d;
-  transform: rotateX(58deg) rotateZ(45deg);
+/* ---- 3D CARD — glass card tilted, gentle bob ---- */
+.skit-3d-card {
+  width: min(520px, 92%);
+  padding: 32px 32px 28px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--skit-3d-color, currentColor) 30%, transparent);
+  background:
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--skit-3d-color, currentColor) 16%, transparent) 0%,
+      color-mix(in srgb, var(--skit-3d-color, currentColor) 4%, transparent) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 30px 60px color-mix(in srgb, var(--skit-3d-color, currentColor) 30%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 35%, transparent);
+  transform: perspective(900px) rotateX(8deg) rotateY(-12deg);
+  animation: skit-3d-card-bob 7s ease-in-out infinite;
 }
-.skit-3d-panel {
-  position: absolute;
-  inset: 0;
-  border: 1.5px solid var(--skit-3d-color, currentColor);
+.skit-3d-card-eyebrow {
+  font-family: var(--lp-mono-font, var(--lpg-body-font, monospace));
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--skit-3d-color, currentColor);
+  opacity: 0.85;
+}
+.skit-3d-card-headline {
+  margin-top: 10px;
+  font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
+  font-weight: 800;
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--skit-3d-color, currentColor);
+}
+.skit-3d-card-subhead {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+  opacity: 0.78;
+}
+.skit-3d-card-tag {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--skit-3d-color, currentColor) 60%, transparent);
+  font-family: var(--lp-mono-font, var(--lpg-body-font, monospace));
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--skit-3d-color, currentColor);
   background: color-mix(in srgb, var(--skit-3d-color, currentColor) 12%, transparent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--skit-3d-color, currentColor) 25%, transparent);
-  transform: translateZ(calc(var(--skit-3d-i, 0) * 22px));
-  animation: skit-3d-tower-float 4.4s ease-in-out infinite;
-  animation-delay: var(--skit-3d-delay, 0s);
 }
-.skit-3d-panel::before {
-  content: "";
-  position: absolute;
-  inset: 14px;
-  border: 1px solid color-mix(in srgb, var(--skit-3d-color, currentColor) 40%, transparent);
-}
-@keyframes skit-3d-tower-float {
-  0%, 100% { transform: translateZ(calc(var(--skit-3d-i, 0) * 22px)) translateY(0); }
-  50%      { transform: translateZ(calc(var(--skit-3d-i, 0) * 22px + 6px)) translateY(-4px); }
+@keyframes skit-3d-card-bob {
+  0%, 100% { transform: perspective(900px) rotateX(8deg)  rotateY(-12deg) translateY(0); }
+  50%      { transform: perspective(900px) rotateX(10deg) rotateY(-8deg)  translateY(-10px); }
 }
 
 /* Respect prefers-reduced-motion globally. Counter still shows the

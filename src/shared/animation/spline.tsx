@@ -1,20 +1,17 @@
+"use client";
+
 import * as React from "react";
 import type { AnimationProps } from "./types.js";
 
-// 3D scene dispatcher for variant="spline". Three pure-CSS 3D scenes
-// (cube / orbs / tower) cover the common "modern / tech-forward" hero
-// needs without forcing the author to design a Spline scene. The
-// "custom" scene falls through to spline_url and embeds an iframe so
-// authors who DO want their own Spline scene still have a path.
-//
-// Why CSS 3D over Spline by default:
-//   - 0KB JS runtime. Spline ships ~250-400KB per scene.
-//   - Renders in the editor preview immediately (no iframe lazy-load).
-//   - Looks intentional rather than blank-with-paste-url-please.
+// 3D scene dispatcher for variant="spline". Three CONTENT-BEARING CSS
+// scenes (counter / stats / card) replace the old decorative spinners
+// — each carries real numbers or copy with depth + tilt. "custom"
+// falls through to spline_url and embeds an iframe so authors who DO
+// want their own Spline scene still have a path.
 
 export function SplineEmbed({ props }: { props: AnimationProps }) {
-  const scene = props.spline_scene ?? "cube";
-  const height = props.height_px ?? 320;
+  const scene = props.spline_scene ?? "counter";
+  const height = props.height_px ?? 360;
   const colorVar: React.CSSProperties = {
     ["--skit-3d-color" as never]: props.color || "var(--skit-anim-default-color, currentColor)",
     minHeight: height,
@@ -25,67 +22,133 @@ export function SplineEmbed({ props }: { props: AnimationProps }) {
   }
   return (
     <div className="skit-3d" data-scene={scene} style={colorVar}>
-      {scene === "cube" && <CubeScene />}
-      {scene === "orbs" && <OrbsScene />}
-      {scene === "tower" && <TowerScene />}
-    </div>
-  );
-}
-
-function CubeScene() {
-  // Wireframe cube via 6 absolutely-positioned panels rotated into the
-  // 6 face positions. Container spins on Y + tumbles on X via CSS
-  // animation. Pure transforms; no JS.
-  return (
-    <div className="skit-3d-stage">
-      <div className="skit-3d-cube">
-        <span className="skit-3d-face skit-3d-face-front" />
-        <span className="skit-3d-face skit-3d-face-back" />
-        <span className="skit-3d-face skit-3d-face-right" />
-        <span className="skit-3d-face skit-3d-face-left" />
-        <span className="skit-3d-face skit-3d-face-top" />
-        <span className="skit-3d-face skit-3d-face-bottom" />
+      <div className="skit-3d-stage">
+        {scene === "counter" && <ThreeDCounterScene props={props} />}
+        {scene === "stats" && <ThreeDStatsScene props={props} />}
+        {scene === "card" && <ThreeDCardScene props={props} />}
       </div>
     </div>
   );
 }
 
-function OrbsScene() {
-  // Three orbs orbiting on a tilted plane. The orbit ring is drawn via
-  // CSS perspective; each orb is a radial-gradient circle that travels
-  // around the ring with phase offsets.
+// ---- 3D Counter — uses the same counter_* fields as the CSS counter ----
+
+function ThreeDCounterScene({ props }: { props: AnimationProps }) {
+  const stat =
+    props.counter_stats && props.counter_stats[0]
+      ? props.counter_stats[0]
+      : {
+          value: props.counter_value ?? 1000,
+          prefix: props.counter_prefix,
+          suffix: props.counter_suffix ?? "+",
+          label: props.counter_label ?? "happy customers",
+        };
+  const target = Math.max(0, Math.floor(stat.value ?? 0));
+  const duration = Math.max(200, props.counter_duration_ms ?? 1500);
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const numberRef = React.useRef<HTMLSpanElement | null>(null);
+  const playedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const root = ref.current;
+    const out = numberRef.current;
+    if (!root || !out) return;
+    out.textContent = formatNumber(0);
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting || playedRef.current) continue;
+          playedRef.current = true;
+          const start = performance.now();
+          function tick(now: number) {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            out!.textContent = formatNumber(Math.round(target * eased));
+            if (t < 1) requestAnimationFrame(tick);
+          }
+          requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(root);
+    return () => io.disconnect();
+  }, [target, duration]);
+
   return (
-    <div className="skit-3d-stage">
-      <div className="skit-3d-orbits">
-        <span className="skit-3d-ring" aria-hidden />
-        <span className="skit-3d-orb skit-3d-orb-a" />
-        <span className="skit-3d-orb skit-3d-orb-b" />
-        <span className="skit-3d-orb skit-3d-orb-c" />
-        <span className="skit-3d-core" />
+    <div ref={ref} className="skit-3d-counter">
+      <div className="skit-3d-counter-number">
+        {stat.prefix && <span className="skit-3d-counter-affix">{stat.prefix}</span>}
+        <span ref={numberRef} className="skit-3d-counter-value">{formatNumber(0)}</span>
+        {stat.suffix && <span className="skit-3d-counter-affix">{stat.suffix}</span>}
       </div>
+      {stat.label && <div className="skit-3d-counter-label">{stat.label}</div>}
     </div>
   );
 }
 
-function TowerScene() {
-  // 5 stacked translucent panels at offsets, gently floating up/down
-  // out of phase with each other. Reads as "data tower / layered system".
+// ---- 3D Stats — 3 floating glass badges around a tilted plane.
+// Reuses counter_stats so the same authoring data drives both the CSS
+// counter trio AND the 3D stats scene. Falls back to placeholders.
+
+function ThreeDStatsScene({ props }: { props: AnimationProps }) {
+  const stats =
+    props.counter_stats && props.counter_stats.length > 0
+      ? padStats(props.counter_stats, 3)
+      : [
+          { value: 5000, suffix: "+", label: "customers" },
+          { value: 99, suffix: "%", label: "uptime" },
+          { value: 24, suffix: "/7", label: "support" },
+        ];
+  const positions = ["a", "b", "c"] as const;
   return (
-    <div className="skit-3d-stage">
-      <div className="skit-3d-tower">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <span
-            key={i}
-            className="skit-3d-panel"
-            style={{
-              ["--skit-3d-i" as never]: i,
-              ["--skit-3d-delay" as never]: `${i * -0.4}s`,
-            }}
-          />
-        ))}
-      </div>
+    <div className="skit-3d-stats">
+      <span className="skit-3d-stats-platform" aria-hidden />
+      {stats.map((s, i) => (
+        <div key={i} className={`skit-3d-stat-badge skit-3d-stat-badge-${positions[i]}`}>
+          <div className="skit-3d-stat-value">
+            {s.prefix && <span className="skit-3d-stat-affix">{s.prefix}</span>}
+            <span>{formatNumber(s.value ?? 0)}</span>
+            {s.suffix && <span className="skit-3d-stat-affix">{s.suffix}</span>}
+          </div>
+          {s.label && <div className="skit-3d-stat-label">{s.label}</div>}
+        </div>
+      ))}
     </div>
   );
+}
+
+function padStats<T>(arr: T[], n: number): T[] {
+  if (arr.length >= n) return arr.slice(0, n);
+  // Repeat the last entry rather than emit blank slots.
+  const out = [...arr];
+  while (out.length < n) out.push(arr[arr.length - 1]);
+  return out;
+}
+
+// ---- 3D Card — tilted glass card with eyebrow / headline / subhead / tag.
+
+function ThreeDCardScene({ props }: { props: AnimationProps }) {
+  const eyebrow = props.card_eyebrow ?? "BARU · 2026";
+  const headline = props.card_headline ?? "Built for the next decade.";
+  const subhead = props.card_subhead ?? "A design system that grows with your team — every primitive, every token, every story.";
+  const tag = props.card_tag ?? "READ THE LAUNCH NOTES";
+  return (
+    <div className="skit-3d-card">
+      {eyebrow && <div className="skit-3d-card-eyebrow">{eyebrow}</div>}
+      {headline && <div className="skit-3d-card-headline">{headline}</div>}
+      {subhead && <div className="skit-3d-card-subhead">{subhead}</div>}
+      {tag && <span className="skit-3d-card-tag">{tag}</span>}
+    </div>
+  );
+}
+
+function formatNumber(n: number): string {
+  try {
+    return new Intl.NumberFormat().format(n);
+  } catch {
+    return String(n);
+  }
 }
 
 // ---- Custom Spline iframe (advanced) ----
@@ -99,8 +162,6 @@ function normalizeSplineUrl(input: string): string | null {
   } catch {
     return null;
   }
-  // Only honor known Spline hosts to avoid an open redirect / iframe-
-  // injection vector. Author-supplied URLs are otherwise low-trust.
   const okHost =
     url.hostname === "my.spline.design" ||
     url.hostname.endsWith(".spline.design") ||
