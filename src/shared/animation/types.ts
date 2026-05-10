@@ -132,6 +132,7 @@ export type AnimationProps = {
   card_headline?: string;             // main headline (1-3 words)
   card_subhead?: string;              // supporting line
   card_tag?: string;                  // small badge inside the card
+  card_tag_href?: string;             // when set, the tag becomes a clickable <a> (opens in new tab)
 
   // ---- 3D interactivity (applies to all 3D scenes) ----
   // Cursor-parallax tilt + click-punch. "off" is a static idle tilt.

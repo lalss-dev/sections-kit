@@ -207,6 +207,17 @@ function SplineFields({
               className={inputCls}
             />
           </div>
+          <div>
+            <Label>Tag URL (optional)</Label>
+            <input
+              value={value.card_tag_href ?? ""}
+              onChange={(e) => patch({ card_tag_href: e.target.value || undefined })}
+              placeholder="https://wa.me/6281234567890 — leave empty for a non-clickable chip"
+              spellCheck={false}
+              className={`${inputCls} font-mono text-[11px]`}
+            />
+            <Helper>When set, the chip becomes a clickable button. Supports https://, mailto:, tel:, wa.me/, and #anchor links.</Helper>
+          </div>
         </div>
       )}
       {scene === "custom" && (

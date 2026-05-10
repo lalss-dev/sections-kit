@@ -248,8 +248,13 @@ function ThreeDCardScene({ props, interactive }: { props: AnimationProps; intera
   const headline = props.card_headline ?? "Built for the next decade.";
   const subhead = props.card_subhead ?? "A design system that grows with your team — every primitive, every token, every story.";
   const tag = props.card_tag ?? "READ THE LAUNCH NOTES";
+  const tagHref = props.card_tag_href;
   const tiltRef = React.useRef<HTMLDivElement | null>(null);
   useTilt(tiltRef, { intensity: interactive, punch: true });
+
+  // External-only tags open in a new tab; mailto:/tel:/wa.me URLs
+  // open in their respective handlers.
+  const isExternal = !!tagHref && !tagHref.startsWith("#");
 
   return (
     <div ref={tiltRef} className="skit-3d-tilt skit-3d-card-tilt" data-interactive={interactive !== "off" ? "" : undefined}>
@@ -258,7 +263,20 @@ function ThreeDCardScene({ props, interactive }: { props: AnimationProps; intera
         {eyebrow && <div className="skit-3d-card-eyebrow">{eyebrow}</div>}
         {headline && <div className="skit-3d-card-headline">{headline}</div>}
         {subhead && <div className="skit-3d-card-subhead">{subhead}</div>}
-        {tag && <span className="skit-3d-card-tag">{tag}</span>}
+        {tag && (
+          tagHref ? (
+            <a
+              href={tagHref}
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noopener noreferrer" : undefined}
+              className="skit-3d-card-tag skit-3d-card-tag-link"
+            >
+              {tag}
+            </a>
+          ) : (
+            <span className="skit-3d-card-tag">{tag}</span>
+          )
+        )}
       </div>
     </div>
   );

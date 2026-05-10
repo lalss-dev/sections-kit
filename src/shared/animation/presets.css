@@ -589,6 +589,22 @@
   text-transform: uppercase;
   color: var(--skit-3d-color, currentColor);
   background: color-mix(in srgb, var(--skit-3d-color, currentColor) 12%, transparent);
+  text-decoration: none;
+}
+/* When the tag has an href, treat it as a real button:
+   pointer cursor, hover invert, focus ring. */
+.skit-3d-card-tag-link {
+  cursor: pointer;
+  transition: background 0.18s ease-out, color 0.18s ease-out, border-color 0.18s ease-out, transform 0.18s ease-out;
+}
+.skit-3d-card-tag-link:hover {
+  background: var(--skit-3d-color, currentColor);
+  color: var(--lp-bg, white);
+  border-color: var(--skit-3d-color, currentColor);
+  transform: translateY(-1px);
+}
+.skit-3d-card-tag-link:active {
+  transform: translateY(0);
 }
 
 /* Respect prefers-reduced-motion globally. Counter still shows the
