@@ -274,7 +274,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  /* Was overflow:hidden — clipped the card scene's soft drop-shadow at
+     the section bounds. Each scene caps its own footprint via the
+     stage's auto-scale so we don't need a hard clip. */
+  overflow: visible;
   color: var(--skit-3d-color, currentColor);
 }
 .skit-3d-stage {
@@ -373,11 +376,19 @@
   transform-style: preserve-3d;
 }
 .skit-3d-stats-platform {
+  /* Was a circular ring rotated rotateX(80deg) on top of the parent's
+     rotateX(20deg) — at that combined angle it foreshortened into a
+     single vertical dashed stripe (Bilal's "line out of nowhere").
+     Now drawn natively as a tall ellipse on the same plane as the
+     badges, so it reads as the implied platform without extra rotation. */
   position: absolute;
-  inset: 30% 5% 0 5%;
-  border: 1.5px dashed color-mix(in srgb, var(--skit-3d-color, currentColor) 35%, transparent);
+  left: 8%;
+  right: 8%;
+  bottom: 22%;
+  height: 36%;
+  border: 1.5px dashed color-mix(in srgb, var(--skit-3d-color, currentColor) 28%, transparent);
   border-radius: 50%;
-  transform: rotateX(80deg);
+  pointer-events: none;
 }
 .skit-3d-stat-badge {
   position: absolute;
