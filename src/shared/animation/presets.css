@@ -1,5 +1,5 @@
 /* ============================================================
-   Animation preset library — CSS keyframes only, no JS deps.
+   Animation preset library — marketing-content blocks.
    Namespace: .skit-anim-preset > [data-preset="..."].
    Inherits --skit-anim-color from inline style on the wrapper.
    ============================================================ */
@@ -12,13 +12,6 @@
   justify-content: center;
   overflow: hidden;
   color: var(--skit-anim-color, currentColor);
-}
-
-.skit-anim-preset .skit-anim-svg {
-  width: min(100%, 480px);
-  height: 100%;
-  max-height: 100%;
-  display: block;
 }
 
 /* Spline embed frame (lives next to presets but used by spline.tsx) */
@@ -63,164 +56,134 @@
 }
 
 /* ============================================================
-   SPARKLE — hero + two satellite twinkles. Each <g> is positioned
-   by its outer wrapper (translate+scale) and spins around its OWN
-   origin (0,0) so transform-origin is implicit. The path is drawn
-   centered on (0,0) so rotation happens in place.
+   COUNTER — huge number (count-up driven by JS) + caption-style label.
    ============================================================ */
-.skit-sparkle-star path { fill: var(--skit-anim-color, currentColor); }
-.skit-sparkle-star {
-  transform-origin: 0 0;
-  animation: skit-sparkle-twinkle 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-.skit-sparkle-star-a { animation-delay: 0s;    opacity: 0.95; }
-.skit-sparkle-star-b { animation-delay: -1.4s; opacity: 0.78; }
-.skit-sparkle-star-c { animation-delay: -2.6s; opacity: 0.65; }
-
-@keyframes skit-sparkle-twinkle {
-  0%, 100% { transform: rotate(0deg)  scale(0.78); }
-  35%      { transform: rotate(45deg) scale(1.06); }
-  60%      { transform: rotate(75deg) scale(0.92); }
-}
-
-/* ============================================================
-   ORBIT — moon circling a center dot, with a faint orbit ring.
-   ============================================================ */
-.skit-orbit-center { fill: var(--skit-anim-color, currentColor); }
-.skit-orbit-moon   { fill: var(--skit-anim-color, currentColor); opacity: 0.9; }
-.skit-orbit-ring {
-  stroke: var(--skit-anim-color, currentColor);
-  stroke-width: 1.5;
-  opacity: 0.18;
-  stroke-dasharray: 3 4;
-}
-.skit-orbit-spinner {
-  transform-origin: 120px 120px;
-  animation: skit-orbit-rotate 4.2s linear infinite;
-}
-@keyframes skit-orbit-rotate {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-/* ============================================================
-   CONFETTI — colored squares falling + tumbling.
-   ============================================================ */
-.skit-confetti-stage {
-  position: relative;
+.skit-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
   width: 100%;
-  height: 100%;
+}
+.skit-counter-number {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
+  font-weight: 700;
+  font-size: clamp(64px, 14vw, 144px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--skit-anim-color, currentColor);
+}
+.skit-counter-affix {
+  font-size: 0.55em;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.skit-counter-value {
+  font-variant-numeric: tabular-nums;
+}
+.skit-counter-label {
+  font-family: var(--lp-mono-font, var(--lpg-body-font, monospace));
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(127, 127, 127, 0.85);
+  text-align: center;
+}
+
+/* ============================================================
+   MARQUEE — endless ticker. Two copies of items concat'd; track
+   translates from 0 to -50% and back to 0 seamlessly.
+   ============================================================ */
+.skit-marquee {
+  width: 100%;
   overflow: hidden;
+  padding: 28px 0;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
-.skit-confetti-piece {
-  position: absolute;
-  top: -16px;
-  width: 12px;
-  height: 12px;
-  background: hsl(var(--skit-confetti-hue, 320) 70% 60%);
-  border-radius: 2px;
-  animation:
-    skit-confetti-fall var(--skit-confetti-dur, 3.2s) linear infinite,
-    skit-confetti-spin calc(var(--skit-confetti-dur, 3.2s) * 0.6) linear infinite;
-  animation-delay: var(--skit-confetti-delay, 0s), var(--skit-confetti-delay, 0s);
+.skit-marquee[data-placeholder] {
+  opacity: 0.55;
 }
-@keyframes skit-confetti-fall {
-  0%   { transform: translateY(-32px) translateX(0);    opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
-  100% { transform: translateY(110%)  translateX(28px); opacity: 0; }
+.skit-marquee-track {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  animation-name: skit-marquee-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
-@keyframes skit-confetti-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(720deg); }
+.skit-marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  padding-right: 24px;
 }
-
-/* ============================================================
-   CHECKMARK — circle outline draws, then tick path strokes.
-   ============================================================ */
-.skit-check-ring,
-.skit-check-path {
-  stroke: var(--skit-anim-color, currentColor);
-  stroke-width: 6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 100;
+.skit-marquee-text {
+  font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
+  font-weight: 700;
+  font-size: clamp(28px, 5vw, 56px);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--skit-anim-color, currentColor);
 }
-.skit-check-ring {
-  stroke-dashoffset: 100;
-  animation: skit-check-ring-draw 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+.skit-marquee-bullet {
+  font-size: clamp(28px, 5vw, 56px);
+  color: var(--skit-anim-color, currentColor);
+  opacity: 0.45;
 }
-.skit-check-path {
-  stroke-dashoffset: 100;
-  animation: skit-check-tick-draw 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-  animation-delay: 0.5s;
-}
-@keyframes skit-check-ring-draw {
-  0%        { stroke-dashoffset: 100; }
-  35%, 100% { stroke-dashoffset: 0; }
-}
-@keyframes skit-check-tick-draw {
-  0%        { stroke-dashoffset: 100; }
-  35%       { stroke-dashoffset: 100; }
-  70%, 100% { stroke-dashoffset: 0; }
+@keyframes skit-marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
 /* ============================================================
-   PULSE — sonar-style concentric expanding circles.
+   TYPEWRITER — prefix + cycling typed word + caret.
    ============================================================ */
-.skit-pulse-core { fill: var(--skit-anim-color, currentColor); }
-.skit-pulse-wave {
-  stroke: var(--skit-anim-color, currentColor);
-  stroke-width: 4;
-  transform-origin: 120px 120px;
-  transform-box: fill-box;
-  animation: skit-pulse-expand 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+.skit-typewriter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  width: 100%;
 }
-.skit-pulse-wave-a { animation-delay: 0s; }
-.skit-pulse-wave-b { animation-delay: -0.8s; }
-.skit-pulse-wave-c { animation-delay: -1.6s; }
-@keyframes skit-pulse-expand {
-  0%   { transform: scale(0.6); opacity: 0.9; }
-  80%  { opacity: 0; }
-  100% { transform: scale(3.2); opacity: 0; }
+.skit-typewriter-line {
+  font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
+  font-weight: 700;
+  font-size: clamp(36px, 6vw, 72px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-align: center;
+  max-width: 90%;
+}
+.skit-typewriter-prefix,
+.skit-typewriter-suffix {
+  color: currentColor;
+  opacity: 0.85;
+}
+.skit-typewriter-word {
+  color: var(--skit-anim-color, currentColor);
+  border-bottom: 0.08em solid var(--skit-anim-color, currentColor);
+  padding-bottom: 0.04em;
+  white-space: nowrap;
+}
+.skit-typewriter-caret {
+  display: inline-block;
+  margin-left: 2px;
+  font-weight: 400;
+  animation: skit-typewriter-blink 0.9s steps(1, end) infinite;
+}
+@keyframes skit-typewriter-blink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
-/* ============================================================
-   ROCKET — body bobs while smoke puffs trail beneath.
-   ============================================================ */
-.skit-rocket-body {
-  transform-origin: 120px 110px;
-  animation: skit-rocket-bob 1.6s ease-in-out infinite;
-}
-.skit-rocket-fill   { fill: var(--skit-anim-color, currentColor); }
-.skit-rocket-fin    { fill: var(--skit-anim-color, currentColor); opacity: 0.55; }
-.skit-rocket-window { fill: rgba(255,255,255,0.85); stroke: var(--skit-anim-color, currentColor); stroke-width: 2; }
-.skit-rocket-flame  {
-  fill: hsl(28 95% 60%);
-  transform-origin: 120px 138px;
-  animation: skit-rocket-flame 0.4s ease-in-out infinite alternate;
-}
-.skit-smoke-puff {
-  fill: rgba(127, 127, 127, 0.28);
-  animation: skit-rocket-smoke 1.6s ease-in-out infinite;
-}
-.skit-smoke-puff-a { animation-delay: 0s; }
-.skit-smoke-puff-b { animation-delay: -0.5s; }
-.skit-smoke-puff-c { animation-delay: -1s; }
-@keyframes skit-rocket-bob {
-  0%, 100% { transform: translateY(0)    rotate(-1deg); }
-  50%      { transform: translateY(-6px) rotate( 1deg); }
-}
-@keyframes skit-rocket-flame {
-  from { transform: scale(0.92, 0.85); opacity: 0.85; }
-  to   { transform: scale(1.05, 1.15); opacity: 1; }
-}
-@keyframes skit-rocket-smoke {
-  0%        { transform: translateY(0)    scale(1);    opacity: 0.4; }
-  60%, 100% { transform: translateY(20px) scale(1.4);  opacity: 0; }
-}
-
-/* Respect prefers-reduced-motion globally. */
+/* Respect prefers-reduced-motion globally. Counter still shows the
+   final value (number is rendered in the DOM by the IO callback);
+   marquee + typewriter stop animating. */
 @media (prefers-reduced-motion: reduce) {
   .skit-anim-preset *,
   .skit-anim-spline-frame {

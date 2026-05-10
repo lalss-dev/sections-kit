@@ -1,187 +1,201 @@
+"use client";
+
 import * as React from "react";
 import type { AnimationProps, AnimationPreset } from "./types.js";
 
-// CSS/SVG preset library — six self-contained animations modeled on the
-// most popular Lottie content (loading dots, success checks, sparkles,
-// confetti, pulse hearts, rocket launches). No JS deps; everything is
-// CSS keyframes + inline SVG.
+// Marketing-content preset library. Each preset converts the Animation
+// section's 360px of vertical real estate into a meaningful unit:
+//
+//   counter    — "5,000+ happy customers" (number counts up on scroll)
+//   marquee    — "GRATIS ONGKIR · COD · 24/7" (endless ticker)
+//   typewriter — "Kami bantu kamu BUILD" (rotating typed word)
 //
 // All presets honor:
 //   --skit-anim-color   resolved from props.color || currentColor
-//   --skit-anim-size    set on the host wrapper to props.height_px
-//
 // CSS lives next door in presets.css and is namespaced under
 // .skit-anim-preset so it can't bleed into the host page.
 
 export function PresetRender({ props }: { props: AnimationProps }) {
-  const preset: AnimationPreset = props.preset ?? "sparkle";
-  const height = props.height_px ?? 360;
+  const preset: AnimationPreset = props.preset ?? "counter";
+  const height = props.height_px ?? 320;
   const color = props.color || undefined;
   const style: React.CSSProperties = {
-    height,
+    minHeight: height,
     ["--skit-anim-color" as never]: color || "var(--skit-anim-default-color, currentColor)",
   };
 
   return (
     <div className="skit-anim-preset" data-preset={preset} style={style}>
-      {preset === "sparkle" && <Sparkle />}
-      {preset === "orbit" && <Orbit />}
-      {preset === "confetti" && <Confetti />}
-      {preset === "checkmark" && <Checkmark />}
-      {preset === "pulse" && <Pulse />}
-      {preset === "rocket" && <Rocket />}
+      {preset === "counter" && <CounterPreset props={props} />}
+      {preset === "marquee" && <MarqueePreset props={props} />}
+      {preset === "typewriter" && <TypewriterPreset props={props} />}
     </div>
   );
 }
 
-// ---------- Individual presets ----------
+// ---------- Counter ----------
+//
+// Big number that animates from 0 to counter_value over counter_duration_ms
+// the first time the section scrolls into view. Pure JS via
+// IntersectionObserver + requestAnimationFrame — no animation libs.
 
-// 4-point sparkle/twinkle drawn around (0,0) so each star can spin
-// in place via SVG transform on its own <g>. Concave Bezier sides
-// give it the "burst" feel rather than a flat polygon.
-const SPARKLE_PATH =
-  "M 0 -50 C 7 -10 10 -7 50 0 C 10 7 7 10 0 50 C -7 10 -10 7 -50 0 C -10 -7 -7 -10 0 -50 Z";
+function CounterPreset({ props }: { props: AnimationProps }) {
+  const target = Math.max(0, Math.floor(props.counter_value ?? 0));
+  const duration = Math.max(200, props.counter_duration_ms ?? 1500);
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const numberRef = React.useRef<HTMLSpanElement | null>(null);
+  const playedRef = React.useRef(false);
 
-function Sparkle() {
-  // One hero + two satellites. Each star is drawn around its own
-  // origin then placed via translate+scale on the wrapper, so the
-  // CSS rotation / pulse on the inner <g> spins it in place instead
-  // of orbiting some far-off transform-origin.
-  return (
-    <svg viewBox="0 0 240 240" className="skit-anim-svg" aria-hidden>
-      <g transform="translate(120 122) scale(0.95)">
-        <g className="skit-sparkle-star skit-sparkle-star-a">
-          <path d={SPARKLE_PATH} />
-        </g>
-      </g>
-      <g transform="translate(192 60) scale(0.42)">
-        <g className="skit-sparkle-star skit-sparkle-star-b">
-          <path d={SPARKLE_PATH} />
-        </g>
-      </g>
-      <g transform="translate(54 188) scale(0.32)">
-        <g className="skit-sparkle-star skit-sparkle-star-c">
-          <path d={SPARKLE_PATH} />
-        </g>
-      </g>
-    </svg>
-  );
-}
-
-function Orbit() {
-  // Big center dot + a small dot circling on a 240px-wide orbit.
-  return (
-    <svg viewBox="0 0 240 240" className="skit-anim-svg" aria-hidden>
-      <circle cx="120" cy="120" r="32" className="skit-orbit-center" />
-      <g className="skit-orbit-spinner">
-        <circle cx="120" cy="40" r="12" className="skit-orbit-moon" />
-      </g>
-      <circle
-        cx="120"
-        cy="120"
-        r="80"
-        className="skit-orbit-ring"
-        fill="none"
-      />
-    </svg>
-  );
-}
-
-function Confetti() {
-  // 14 colored squares falling and spinning at different speeds. Each
-  // gets a custom-property delay/x-offset/color so the keyframes share
-  // one rule.
-  const pieces = Array.from({ length: 14 }).map((_, i) => {
-    const x = (i / 13) * 100; // 0..100% across the width
-    const delay = (i % 7) * 0.3; // staggered cascade
-    const dur = 2.8 + (i % 5) * 0.4; // 2.8..4.4s
-    const hue = (i * 53) % 360; // spread around the wheel
-    return (
-      <span
-        key={i}
-        className="skit-confetti-piece"
-        style={{
-          left: `${x}%`,
-          ["--skit-confetti-delay" as never]: `${delay}s`,
-          ["--skit-confetti-dur" as never]: `${dur}s`,
-          ["--skit-confetti-hue" as never]: hue,
-        }}
-      />
+  React.useEffect(() => {
+    const root = ref.current;
+    const out = numberRef.current;
+    if (!root || !out) return;
+    out.textContent = formatNumber(0);
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting || playedRef.current) continue;
+          playedRef.current = true;
+          const start = performance.now();
+          function tick(now: number) {
+            const t = Math.min(1, (now - start) / duration);
+            // ease-out cubic
+            const eased = 1 - Math.pow(1 - t, 3);
+            out!.textContent = formatNumber(Math.round(target * eased));
+            if (t < 1) requestAnimationFrame(tick);
+          }
+          requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.35 },
     );
-  });
-  return <div className="skit-confetti-stage">{pieces}</div>;
-}
+    io.observe(root);
+    return () => io.disconnect();
+  }, [target, duration]);
 
-function Checkmark() {
-  // SVG circle outline draws clockwise, then check path strokes from
-  // top-left to bottom-right. Both via stroke-dasharray + dashoffset
-  // animation. pathLength=100 normalizes the geometry math.
   return (
-    <svg viewBox="0 0 240 240" className="skit-anim-svg" aria-hidden>
-      <circle
-        cx="120"
-        cy="120"
-        r="96"
-        className="skit-check-ring"
-        fill="none"
-        pathLength={100}
-      />
-      <path
-        d="M68 124 L106 162 L172 90"
-        className="skit-check-path"
-        fill="none"
-        pathLength={100}
-      />
-    </svg>
+    <div ref={ref} className="skit-counter">
+      <div className="skit-counter-number">
+        {props.counter_prefix && <span className="skit-counter-affix">{props.counter_prefix}</span>}
+        <span ref={numberRef} className="skit-counter-value">{formatNumber(0)}</span>
+        {props.counter_suffix && <span className="skit-counter-affix">{props.counter_suffix}</span>}
+      </div>
+      {props.counter_label && (
+        <div className="skit-counter-label">{props.counter_label}</div>
+      )}
+    </div>
   );
 }
 
-function Pulse() {
-  // Three concentric circles expanding and fading like a sonar ping.
+function formatNumber(n: number): string {
+  // Thousands separator that respects the page's locale, with a sane
+  // fallback if Intl isn't available.
+  try {
+    return new Intl.NumberFormat().format(n);
+  } catch {
+    return String(n);
+  }
+}
+
+// ---------- Marquee ----------
+//
+// Endless horizontal scroll of items separated by a bullet. Items
+// duplicated once so the loop seams cleanly with translateX(-50%).
+
+function MarqueePreset({ props }: { props: AnimationProps }) {
+  const items = (props.marquee_items ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const placeholder = items.length === 0;
+  const display = placeholder ? ["Add items, comma-separated"] : items;
+  const speed = props.marquee_speed ?? "normal";
+  const dur = speed === "slow" ? "60s" : speed === "fast" ? "18s" : "32s";
+
+  // Doubled so the second copy slides into where the first finishes.
+  const sequence = [...display, ...display];
+
   return (
-    <svg viewBox="0 0 240 240" className="skit-anim-svg" aria-hidden>
-      <circle cx="120" cy="120" r="20" className="skit-pulse-core" />
-      <circle cx="120" cy="120" r="20" className="skit-pulse-wave skit-pulse-wave-a" fill="none" />
-      <circle cx="120" cy="120" r="20" className="skit-pulse-wave skit-pulse-wave-b" fill="none" />
-      <circle cx="120" cy="120" r="20" className="skit-pulse-wave skit-pulse-wave-c" fill="none" />
-    </svg>
+    <div className="skit-marquee" data-placeholder={placeholder ? "" : undefined}>
+      <div className="skit-marquee-track" style={{ animationDuration: dur }}>
+        {sequence.map((item, i) => (
+          <span key={i} className="skit-marquee-item">
+            <span className="skit-marquee-text">{item}</span>
+            <span className="skit-marquee-bullet" aria-hidden>·</span>
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
-function Rocket() {
-  // Rocket body bobs up; smoke trail puffs below. Two SVG groups so
-  // they animate independently. Body translate + rotate slight wobble;
-  // smoke uses an opacity stagger across three puffs.
+// ---------- Typewriter ----------
+//
+// Static prefix + a cycling word that types in, holds, deletes, and
+// advances to the next word. Pure setTimeout chain — no deps. Caret
+// blinks via CSS keyframe.
+
+function TypewriterPreset({ props }: { props: AnimationProps }) {
+  const words = (props.typewriter_words ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const display = words.length === 0 ? ["build", "launch", "grow"] : words;
+
+  const [text, setText] = React.useState("");
+  const idxRef = React.useRef(0);
+  const phaseRef = React.useRef<"typing" | "holding" | "deleting">("typing");
+  const charRef = React.useRef(0);
+
+  React.useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    function step() {
+      const word = display[idxRef.current % display.length];
+      if (phaseRef.current === "typing") {
+        charRef.current += 1;
+        setText(word.slice(0, charRef.current));
+        if (charRef.current >= word.length) {
+          phaseRef.current = "holding";
+          timer = setTimeout(step, 1100);
+          return;
+        }
+        timer = setTimeout(step, 70);
+      } else if (phaseRef.current === "holding") {
+        phaseRef.current = "deleting";
+        timer = setTimeout(step, 50);
+      } else {
+        charRef.current -= 1;
+        setText(word.slice(0, Math.max(0, charRef.current)));
+        if (charRef.current <= 0) {
+          idxRef.current += 1;
+          phaseRef.current = "typing";
+          timer = setTimeout(step, 250);
+          return;
+        }
+        timer = setTimeout(step, 40);
+      }
+    }
+    timer = setTimeout(step, 350);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+    // Re-bind on words change so editor edits hot-swap cleanly.
+  }, [display.join("|")]);
+
   return (
-    <svg viewBox="0 0 240 240" className="skit-anim-svg" aria-hidden>
-      <g className="skit-rocket-body">
-        {/* Hull */}
-        <path
-          d="M120 30 C146 30 162 70 162 110 L78 110 C78 70 94 30 120 30 Z"
-          className="skit-rocket-fill"
-        />
-        {/* Window */}
-        <circle cx="120" cy="78" r="14" className="skit-rocket-window" />
-        {/* Fins */}
-        <path
-          d="M78 110 L60 140 L78 138 Z"
-          className="skit-rocket-fin"
-        />
-        <path
-          d="M162 110 L180 140 L162 138 Z"
-          className="skit-rocket-fin"
-        />
-        {/* Flame */}
-        <path
-          d="M104 138 Q120 178 136 138 Q126 152 120 158 Q114 152 104 138 Z"
-          className="skit-rocket-flame"
-        />
-      </g>
-      <g className="skit-rocket-smoke">
-        <circle cx="100" cy="190" r="14" className="skit-smoke-puff skit-smoke-puff-a" />
-        <circle cx="120" cy="200" r="18" className="skit-smoke-puff skit-smoke-puff-b" />
-        <circle cx="140" cy="190" r="14" className="skit-smoke-puff skit-smoke-puff-c" />
-      </g>
-    </svg>
+    <div className="skit-typewriter">
+      <div className="skit-typewriter-line">
+        {props.typewriter_prefix && (
+          <span className="skit-typewriter-prefix">{props.typewriter_prefix}&nbsp;</span>
+        )}
+        <span className="skit-typewriter-word">
+          {text}
+          <span className="skit-typewriter-caret" aria-hidden>|</span>
+        </span>
+        {props.typewriter_suffix && (
+          <span className="skit-typewriter-suffix">&nbsp;{props.typewriter_suffix}</span>
+        )}
+      </div>
+    </div>
   );
 }
