@@ -10,6 +10,7 @@ export {
   MARQUEE_DIRECTIONS,
   MARQUEE_ROWS,
   MARQUEE_STYLES,
+  THREE_D_INTERACTIVITY,
   TYPEWRITER_HIGHLIGHTS,
   defaultAnimationProps,
   type AnimationVariant,
@@ -22,6 +23,7 @@ export {
   type MarqueeDirection,
   type MarqueeRows,
   type MarqueeStyle,
+  type ThreeDInteractivity,
   type TypewriterHighlight,
 } from "./types.js";
 export { AnimationRender } from "./render.js";

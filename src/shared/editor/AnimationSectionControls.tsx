@@ -10,6 +10,7 @@ import {
   MARQUEE_DIRECTIONS,
   MARQUEE_ROWS,
   MARQUEE_STYLES,
+  THREE_D_INTERACTIVITY,
   TYPEWRITER_HIGHLIGHTS,
   type Animation3DScene,
   type AnimationPreset,
@@ -20,6 +21,7 @@ import {
   type MarqueeDirection,
   type MarqueeRows,
   type MarqueeStyle,
+  type ThreeDInteractivity,
   type TypewriterHighlight,
 } from "../animation/types.js";
 
@@ -210,6 +212,21 @@ function SplineFields({
             className={inputCls}
           />
           <Helper>Paste the public scene URL from spline.design — we auto-append /embed.</Helper>
+        </div>
+      )}
+
+      {scene !== "custom" && (
+        <div className="mt-3">
+          <Label>Interactivity</Label>
+          <ChipRow
+            options={THREE_D_INTERACTIVITY.map((m) => ({
+              value: m,
+              label: m === "off" ? "Off" : m === "subtle" ? "Subtle" : m === "normal" ? "Normal" : "Dramatic",
+            }))}
+            value={value.interactive_3d ?? "normal"}
+            onChange={(m) => patch({ interactive_3d: m as ThreeDInteractivity })}
+          />
+          <Helper>Cursor parallax tilts the scene in 3D — Off keeps it static, Dramatic gives ±22° follow.</Helper>
         </div>
       )}
     </div>

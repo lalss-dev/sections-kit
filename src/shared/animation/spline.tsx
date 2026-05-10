@@ -1,17 +1,25 @@
 "use client";
 
 import * as React from "react";
-import type { AnimationProps } from "./types.js";
+import type { AnimationProps, ThreeDInteractivity } from "./types.js";
 
 // 3D scene dispatcher for variant="spline". Three CONTENT-BEARING CSS
 // scenes (counter / stats / card) replace the old decorative spinners
 // — each carries real numbers or copy with depth + tilt. "custom"
-// falls through to spline_url and embeds an iframe so authors who DO
-// want their own Spline scene still have a path.
+// falls through to spline_url and embeds an iframe.
+//
+// Interactivity layer: cursor-parallax tilt via CSS vars
+//   --skit-3d-tilt-x  rotateX delta (deg)
+//   --skit-3d-tilt-y  rotateY delta (deg)
+//   --skit-3d-active  0 (idle) | 1 (cursor over) — drives transitions
+// Each scene's static idle transform composes with these vars so the
+// scene LOOKS great with no cursor and FEELS alive when the cursor
+// enters.
 
 export function SplineEmbed({ props }: { props: AnimationProps }) {
   const scene = props.spline_scene ?? "counter";
   const height = props.height_px ?? 360;
+  const interactive: ThreeDInteractivity = props.interactive_3d ?? "normal";
   const colorVar: React.CSSProperties = {
     ["--skit-3d-color" as never]: props.color || "var(--skit-anim-default-color, currentColor)",
     minHeight: height,
@@ -23,17 +31,93 @@ export function SplineEmbed({ props }: { props: AnimationProps }) {
   return (
     <div className="skit-3d" data-scene={scene} style={colorVar}>
       <div className="skit-3d-stage">
-        {scene === "counter" && <ThreeDCounterScene props={props} />}
-        {scene === "stats" && <ThreeDStatsScene props={props} />}
-        {scene === "card" && <ThreeDCardScene props={props} />}
+        {scene === "counter" && <ThreeDCounterScene props={props} interactive={interactive} />}
+        {scene === "stats" && <ThreeDStatsScene props={props} interactive={interactive} />}
+        {scene === "card" && <ThreeDCardScene props={props} interactive={interactive} />}
       </div>
     </div>
   );
 }
 
-// ---- 3D Counter — uses the same counter_* fields as the CSS counter ----
+// ---- useTilt — pointer-parallax tilt on a ref via CSS vars ----
+//
+// Listens for pointermove on the container, computes a -1..1 delta
+// from the cursor's position relative to the element bounds, and
+// writes scaled deg values into --skit-3d-tilt-x/y. rAF-throttled so
+// we never write more than once per frame even on a 240Hz mouse.
+//
+// PointerEvent covers mouse + touch + pen. On touch devices a tap
+// produces a single move event; we leave the tilt latched for ~600ms
+// after touchend so the user briefly sees the response.
 
-function ThreeDCounterScene({ props }: { props: AnimationProps }) {
+type TiltOpts = { intensity: ThreeDInteractivity; punch?: boolean };
+
+function useTilt<T extends HTMLElement>(ref: React.RefObject<T>, { intensity, punch = false }: TiltOpts) {
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || intensity === "off") {
+      el?.style.removeProperty("--skit-3d-tilt-x");
+      el?.style.removeProperty("--skit-3d-tilt-y");
+      el?.style.setProperty("--skit-3d-active", "0");
+      return;
+    }
+    const max = intensity === "subtle" ? 8 : intensity === "dramatic" ? 22 : 14;
+    let rafId: number | null = null;
+    let nx = 0;
+    let ny = 0;
+    let leaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function apply() {
+      rafId = null;
+      el!.style.setProperty("--skit-3d-tilt-x", `${ny.toFixed(2)}deg`);
+      el!.style.setProperty("--skit-3d-tilt-y", `${nx.toFixed(2)}deg`);
+      el!.style.setProperty("--skit-3d-active", "1");
+    }
+    function onMove(e: PointerEvent) {
+      const rect = el!.getBoundingClientRect();
+      const fx = (e.clientX - rect.left) / rect.width - 0.5;   // -0.5..0.5
+      const fy = (e.clientY - rect.top) / rect.height - 0.5;
+      nx = fx * max * 2;
+      ny = -fy * max * 2;
+      if (rafId == null) rafId = requestAnimationFrame(apply);
+      if (leaveTimer) {
+        clearTimeout(leaveTimer);
+        leaveTimer = null;
+      }
+    }
+    function onLeave() {
+      // Latch briefly on touch so the user sees the tilt; settle on mouse.
+      const settleDelay = 0;
+      leaveTimer = setTimeout(() => {
+        el!.style.setProperty("--skit-3d-tilt-x", "0deg");
+        el!.style.setProperty("--skit-3d-tilt-y", "0deg");
+        el!.style.setProperty("--skit-3d-active", "0");
+      }, settleDelay);
+    }
+    function onDown() {
+      if (!punch) return;
+      el!.classList.add("skit-3d-punch");
+      window.setTimeout(() => el!.classList.remove("skit-3d-punch"), 320);
+    }
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+    el.addEventListener("pointerdown", onDown);
+    el.style.setProperty("--skit-3d-active", "0");
+    el.style.setProperty("--skit-3d-tilt-x", "0deg");
+    el.style.setProperty("--skit-3d-tilt-y", "0deg");
+    return () => {
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+      el.removeEventListener("pointerdown", onDown);
+      if (rafId != null) cancelAnimationFrame(rafId);
+      if (leaveTimer) clearTimeout(leaveTimer);
+    };
+  }, [intensity, punch, ref]);
+}
+
+// ---- 3D Counter ----
+
+function ThreeDCounterScene({ props, interactive }: { props: AnimationProps; interactive: ThreeDInteractivity }) {
   const stat =
     props.counter_stats && props.counter_stats[0]
       ? props.counter_stats[0]
@@ -45,12 +129,15 @@ function ThreeDCounterScene({ props }: { props: AnimationProps }) {
         };
   const target = Math.max(0, Math.floor(stat.value ?? 0));
   const duration = Math.max(200, props.counter_duration_ms ?? 1500);
-  const ref = React.useRef<HTMLDivElement | null>(null);
+  const tiltRef = React.useRef<HTMLDivElement | null>(null);
+  const counterRef = React.useRef<HTMLDivElement | null>(null);
   const numberRef = React.useRef<HTMLSpanElement | null>(null);
   const playedRef = React.useRef(false);
 
+  useTilt(tiltRef, { intensity: interactive, punch: true });
+
   React.useEffect(() => {
-    const root = ref.current;
+    const root = counterRef.current;
     const out = numberRef.current;
     if (!root || !out) return;
     out.textContent = formatNumber(0);
@@ -76,22 +163,22 @@ function ThreeDCounterScene({ props }: { props: AnimationProps }) {
   }, [target, duration]);
 
   return (
-    <div ref={ref} className="skit-3d-counter">
-      <div className="skit-3d-counter-number">
-        {stat.prefix && <span className="skit-3d-counter-affix">{stat.prefix}</span>}
-        <span ref={numberRef} className="skit-3d-counter-value">{formatNumber(0)}</span>
-        {stat.suffix && <span className="skit-3d-counter-affix">{stat.suffix}</span>}
+    <div ref={tiltRef} className="skit-3d-tilt skit-3d-counter-tilt" data-interactive={interactive !== "off" ? "" : undefined}>
+      <div ref={counterRef} className="skit-3d-counter">
+        <div className="skit-3d-counter-number">
+          {stat.prefix && <span className="skit-3d-counter-affix">{stat.prefix}</span>}
+          <span ref={numberRef} className="skit-3d-counter-value">{formatNumber(0)}</span>
+          {stat.suffix && <span className="skit-3d-counter-affix">{stat.suffix}</span>}
+        </div>
+        {stat.label && <div className="skit-3d-counter-label">{stat.label}</div>}
       </div>
-      {stat.label && <div className="skit-3d-counter-label">{stat.label}</div>}
     </div>
   );
 }
 
-// ---- 3D Stats — 3 floating glass badges around a tilted plane.
-// Reuses counter_stats so the same authoring data drives both the CSS
-// counter trio AND the 3D stats scene. Falls back to placeholders.
+// ---- 3D Stats ----
 
-function ThreeDStatsScene({ props }: { props: AnimationProps }) {
+function ThreeDStatsScene({ props, interactive }: { props: AnimationProps; interactive: ThreeDInteractivity }) {
   const stats =
     props.counter_stats && props.counter_stats.length > 0
       ? padStats(props.counter_stats, 3)
@@ -101,44 +188,54 @@ function ThreeDStatsScene({ props }: { props: AnimationProps }) {
           { value: 24, suffix: "/7", label: "support" },
         ];
   const positions = ["a", "b", "c"] as const;
+  const tiltRef = React.useRef<HTMLDivElement | null>(null);
+  useTilt(tiltRef, { intensity: interactive });
+
   return (
-    <div className="skit-3d-stats">
-      <span className="skit-3d-stats-platform" aria-hidden />
-      {stats.map((s, i) => (
-        <div key={i} className={`skit-3d-stat-badge skit-3d-stat-badge-${positions[i]}`}>
-          <div className="skit-3d-stat-value">
-            {s.prefix && <span className="skit-3d-stat-affix">{s.prefix}</span>}
-            <span>{formatNumber(s.value ?? 0)}</span>
-            {s.suffix && <span className="skit-3d-stat-affix">{s.suffix}</span>}
+    <div ref={tiltRef} className="skit-3d-tilt skit-3d-stats-tilt" data-interactive={interactive !== "off" ? "" : undefined}>
+      <div className="skit-3d-stats">
+        <span className="skit-3d-stats-platform" aria-hidden />
+        {stats.map((s, i) => (
+          <div key={i} className={`skit-3d-stat-badge skit-3d-stat-badge-${positions[i]}`}>
+            <div className="skit-3d-stat-value">
+              {s.prefix && <span className="skit-3d-stat-affix">{s.prefix}</span>}
+              <span>{formatNumber(s.value ?? 0)}</span>
+              {s.suffix && <span className="skit-3d-stat-affix">{s.suffix}</span>}
+            </div>
+            {s.label && <div className="skit-3d-stat-label">{s.label}</div>}
           </div>
-          {s.label && <div className="skit-3d-stat-label">{s.label}</div>}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
 function padStats<T>(arr: T[], n: number): T[] {
   if (arr.length >= n) return arr.slice(0, n);
-  // Repeat the last entry rather than emit blank slots.
   const out = [...arr];
   while (out.length < n) out.push(arr[arr.length - 1]);
   return out;
 }
 
-// ---- 3D Card — tilted glass card with eyebrow / headline / subhead / tag.
+// ---- 3D Card ----
 
-function ThreeDCardScene({ props }: { props: AnimationProps }) {
+function ThreeDCardScene({ props, interactive }: { props: AnimationProps; interactive: ThreeDInteractivity }) {
   const eyebrow = props.card_eyebrow ?? "BARU · 2026";
   const headline = props.card_headline ?? "Built for the next decade.";
   const subhead = props.card_subhead ?? "A design system that grows with your team — every primitive, every token, every story.";
   const tag = props.card_tag ?? "READ THE LAUNCH NOTES";
+  const tiltRef = React.useRef<HTMLDivElement | null>(null);
+  useTilt(tiltRef, { intensity: interactive, punch: true });
+
   return (
-    <div className="skit-3d-card">
-      {eyebrow && <div className="skit-3d-card-eyebrow">{eyebrow}</div>}
-      {headline && <div className="skit-3d-card-headline">{headline}</div>}
-      {subhead && <div className="skit-3d-card-subhead">{subhead}</div>}
-      {tag && <span className="skit-3d-card-tag">{tag}</span>}
+    <div ref={tiltRef} className="skit-3d-tilt skit-3d-card-tilt" data-interactive={interactive !== "off" ? "" : undefined}>
+      <div className="skit-3d-card">
+        <span className="skit-3d-card-glare" aria-hidden />
+        {eyebrow && <div className="skit-3d-card-eyebrow">{eyebrow}</div>}
+        {headline && <div className="skit-3d-card-headline">{headline}</div>}
+        {subhead && <div className="skit-3d-card-subhead">{subhead}</div>}
+        {tag && <span className="skit-3d-card-tag">{tag}</span>}
+      </div>
     </div>
   );
 }

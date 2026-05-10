@@ -132,7 +132,15 @@ export type AnimationProps = {
   card_headline?: string;             // main headline (1-3 words)
   card_subhead?: string;              // supporting line
   card_tag?: string;                  // small badge inside the card
+
+  // ---- 3D interactivity (applies to all 3D scenes) ----
+  // Cursor-parallax tilt + click-punch. "off" is a static idle tilt.
+  // "subtle" = ±8deg max, "normal" = ±14deg, "dramatic" = ±22deg.
+  interactive_3d?: ThreeDInteractivity;
 };
+
+export const THREE_D_INTERACTIVITY = ["off", "subtle", "normal", "dramatic"] as const;
+export type ThreeDInteractivity = (typeof THREE_D_INTERACTIVITY)[number];
 
 // Default props factory. Counter is the friendliest default — authors
 // drop in a section and immediately see "1,000+ happy customers".

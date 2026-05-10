@@ -288,12 +288,37 @@
   perspective: 1100px;
 }
 
+/* ---- Interactive tilt wrapper — every scene's outer .skit-3d-tilt
+   composes its idle-tilt with the cursor-driven --skit-3d-tilt-x/y
+   vars set by the useTilt hook. The transition makes idle ↔ active
+   transitions buttery; --skit-3d-active drives a click-punch scale
+   when the .skit-3d-punch class is briefly applied.            ---- */
+.skit-3d-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+  cursor: default;
+}
+.skit-3d-tilt[data-interactive] { cursor: grab; }
+.skit-3d-tilt[data-interactive]:active { cursor: grabbing; }
+.skit-3d-punch {
+  animation: skit-3d-punch-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes skit-3d-punch-pop {
+  0%   { scale: 1; }
+  35%  { scale: 0.94; }
+  70%  { scale: 1.05; }
+  100% { scale: 1; }
+}
+
 /* ---- 3D COUNTER ---- */
+.skit-3d-counter-tilt {
+  transform:
+    rotateX(calc(-12deg + var(--skit-3d-tilt-x, 0deg)))
+    rotateY(calc(-18deg + var(--skit-3d-tilt-y, 0deg)));
+}
 .skit-3d-counter {
-  transform: rotateX(-12deg) rotateY(-18deg);
   transform-style: preserve-3d;
   text-align: center;
-  animation: skit-3d-counter-tilt 8s ease-in-out infinite;
 }
 .skit-3d-counter-number {
   display: inline-flex;
@@ -324,18 +349,17 @@
   text-transform: uppercase;
   opacity: 0.75;
 }
-@keyframes skit-3d-counter-tilt {
-  0%, 100% { transform: rotateX(-14deg) rotateY(-22deg); }
-  50%      { transform: rotateX(-10deg) rotateY(-14deg); }
-}
-
 /* ---- 3D STATS — 3 floating badges on a tilted plane ---- */
+.skit-3d-stats-tilt {
+  transform:
+    rotateX(calc(20deg + var(--skit-3d-tilt-x, 0deg)))
+    rotateY(var(--skit-3d-tilt-y, 0deg));
+}
 .skit-3d-stats {
   position: relative;
   width: min(640px, 92%);
   height: 280px;
   transform-style: preserve-3d;
-  transform: rotateX(20deg);
 }
 .skit-3d-stats-platform {
   position: absolute;
@@ -365,6 +389,13 @@
   text-align: center;
   animation: skit-3d-stat-float 6.8s ease-in-out infinite;
   transform-style: preserve-3d;
+  transition: box-shadow 0.3s, scale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.skit-3d-stat-badge:hover {
+  scale: 1.08;
+  box-shadow:
+    0 14px 42px color-mix(in srgb, var(--skit-3d-color, currentColor) 50%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 50%, transparent);
 }
 .skit-3d-stat-badge-a { transform: translateX(-220px) translateY(-30px) translateZ(40px) rotateY(18deg); animation-delay: 0s; }
 .skit-3d-stat-badge-b { transform: translateY(0)               translateZ(80px); animation-delay: -2.2s; }
@@ -394,8 +425,15 @@
   opacity: 0.85;
 }
 
-/* ---- 3D CARD — glass card tilted, gentle bob ---- */
+/* ---- 3D CARD — glass card tilted, lifts on cursor ---- */
+.skit-3d-card-tilt {
+  perspective: 1200px;
+  transform:
+    rotateX(calc(8deg + var(--skit-3d-tilt-x, 0deg) * 0.7))
+    rotateY(calc(-12deg + var(--skit-3d-tilt-y, 0deg) * 0.7));
+}
 .skit-3d-card {
+  position: relative;
   width: min(520px, 92%);
   padding: 32px 32px 28px;
   border-radius: 22px;
@@ -409,8 +447,26 @@
   box-shadow:
     0 30px 60px color-mix(in srgb, var(--skit-3d-color, currentColor) 30%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 35%, transparent);
-  transform: perspective(900px) rotateX(8deg) rotateY(-12deg);
-  animation: skit-3d-card-bob 7s ease-in-out infinite;
+  transform: translateZ(calc(20px * var(--skit-3d-active, 0)));
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.4s ease-out;
+  overflow: hidden;
+}
+.skit-3d-card-tilt[data-interactive] .skit-3d-card[style] {} /* keep specificity */
+.skit-3d-card-tilt[data-interactive] .skit-3d-card { will-change: transform; }
+/* Glare follows cursor — radial gradient at the tilt origin point */
+.skit-3d-card-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: var(--skit-3d-active, 0);
+  transition: opacity 0.4s ease-out;
+  background: radial-gradient(
+    400px circle at calc(50% + var(--skit-3d-tilt-y, 0deg) * 6) calc(50% - var(--skit-3d-tilt-x, 0deg) * 6),
+    color-mix(in srgb, var(--skit-3d-color, currentColor) 28%, white) 0%,
+    transparent 50%
+  );
+  mix-blend-mode: overlay;
 }
 .skit-3d-card-eyebrow {
   font-family: var(--lp-mono-font, var(--lpg-body-font, monospace));
@@ -447,10 +503,6 @@
   text-transform: uppercase;
   color: var(--skit-3d-color, currentColor);
   background: color-mix(in srgb, var(--skit-3d-color, currentColor) 12%, transparent);
-}
-@keyframes skit-3d-card-bob {
-  0%, 100% { transform: perspective(900px) rotateX(8deg)  rotateY(-12deg) translateY(0); }
-  50%      { transform: perspective(900px) rotateX(10deg) rotateY(-8deg)  translateY(-10px); }
 }
 
 /* Respect prefers-reduced-motion globally. Counter still shows the
