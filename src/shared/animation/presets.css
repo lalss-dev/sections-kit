@@ -281,12 +281,23 @@
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
   perspective: 1100px;
+  /* Auto-scale: shrink the entire scene when the section is shorter than
+     the scene's natural height. --skit-anim-h is set inline by the kit
+     from props.height_px; --skit-anim-natural-h defaults to 360px and
+     each scene can override it. */
+  --skit-anim-natural-h: 360px;
+  transform: scale(min(1, calc(var(--skit-anim-h, 360px) / var(--skit-anim-natural-h, 360px))));
+  transform-origin: center;
 }
+/* Per-scene natural heights (= the height at which the scene looks
+   intentional, no scaling). Below this, the stage shrinks. */
+.skit-3d[data-scene="counter"] .skit-3d-stage { --skit-anim-natural-h: 320px; }
+.skit-3d[data-scene="stats"]   .skit-3d-stage { --skit-anim-natural-h: 360px; }
+.skit-3d[data-scene="card"]    .skit-3d-stage { --skit-anim-natural-h: 380px; }
 
 /* ---- Interactive tilt wrapper — every scene's outer .skit-3d-tilt
    composes its idle-tilt with the cursor-driven --skit-3d-tilt-x/y

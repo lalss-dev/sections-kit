@@ -20,9 +20,13 @@ export function SplineEmbed({ props }: { props: AnimationProps }) {
   const scene = props.spline_scene ?? "counter";
   const height = props.height_px ?? 360;
   const interactive: ThreeDInteractivity = props.interactive_3d ?? "normal";
+  // --skit-anim-h drives auto-scale: when the section height is below the
+  // scene's natural height, the inner stage shrinks instead of clipping.
   const colorVar: React.CSSProperties = {
     ["--skit-3d-color" as never]: props.color || "var(--skit-anim-default-color, currentColor)",
+    ["--skit-anim-h" as never]: `${height}px`,
     minHeight: height,
+    height,
   };
 
   if (scene === "custom") {

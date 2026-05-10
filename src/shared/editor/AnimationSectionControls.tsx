@@ -38,10 +38,16 @@ export function AnimationSectionControls({
   variant,
   value,
   onChange,
+  fontSlot,
 }: {
   variant?: AnimationVariant;
   value: AnimationProps;
   onChange: (next: AnimationProps) => void;
+  // Render-prop slot for the app's native font picker. Each consumer
+  // (PoS, CRM landing, CRM link) has its own font system + storage,
+  // so the kit doesn't own this UI. When provided, rendered above the
+  // Caption row so the author can pick a font for the animation copy.
+  fontSlot?: React.ReactNode;
 }) {
   const v: AnimationVariant = variant ?? value.variant ?? "preset";
   const preset: AnimationPreset = value.preset ?? "counter";
@@ -85,6 +91,8 @@ export function AnimationSectionControls({
         onChange={(v2) => patch({ color: v2 })}
         helper="Leave empty to inherit the page theme accent."
       />
+
+      {fontSlot && <div>{fontSlot}</div>}
 
       <div>
         <Label>Caption</Label>
