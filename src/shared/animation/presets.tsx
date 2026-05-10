@@ -138,9 +138,12 @@ function CounterCell({
   );
 }
 
+// Fixed en-US locale so SSR + client renders match. Without this,
+// servers in en-* locales emit "5,000" and clients in id-ID emit
+// "5.000" → React hydration mismatch on the very first counter cell.
 function formatNumber(n: number): string {
   try {
-    return new Intl.NumberFormat().format(n);
+    return new Intl.NumberFormat("en-US").format(n);
   } catch {
     return String(n);
   }

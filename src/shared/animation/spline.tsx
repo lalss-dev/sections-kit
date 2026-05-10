@@ -251,9 +251,11 @@ function ThreeDCardScene({ props, interactive }: { props: AnimationProps; intera
   );
 }
 
+// Fixed en-US locale so SSR + client renders match. See note in
+// presets.tsx#formatNumber.
 function formatNumber(n: number): string {
   try {
-    return new Intl.NumberFormat().format(n);
+    return new Intl.NumberFormat("en-US").format(n);
   } catch {
     return String(n);
   }
