@@ -27,6 +27,10 @@
       "types": "./dist/shared/interactive/index.d.ts",
       "import": "./dist/shared/interactive/index.js"
     },
+    "./fonts": {
+      "types": "./dist/shared/fonts/index.d.ts",
+      "import": "./dist/shared/fonts/index.js"
+    },
     "./editor": {
       "types": "./dist/shared/editor/index.d.ts",
       "import": "./dist/shared/editor/index.js"
