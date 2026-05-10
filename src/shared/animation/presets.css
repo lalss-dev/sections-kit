@@ -502,7 +502,14 @@
    gently tilted with cursor parallax when interactive is on.  ---- */
 .skit-3d-card-tilt {
   perspective: 1200px;
-  /* No tilt when interactive=off. Card sits flat, centered. */
+  /* Center the card horizontally inside the tilt wrapper. The stage
+     already flex-centers the tilt wrapper itself, but the card was
+     flush-left inside the tilt because the tilt was a plain block.
+     (Bilal: "centered from what you fuck? it's clipped to the left".) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 .skit-3d-card-tilt[data-interactive] {
   transform:
