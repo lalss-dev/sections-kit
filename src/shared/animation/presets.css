@@ -293,9 +293,13 @@
   height: min(var(--skit-anim-h, 360px), calc(var(--skit-anim-natural-h, 360px) * 1.4));
   min-height: min(var(--skit-anim-h, 360px), calc(var(--skit-anim-natural-h, 360px) * 1.4));
 }
-.skit-3d[data-scene="counter"] { --skit-anim-natural-h: 320px; }
-.skit-3d[data-scene="stats"]   { --skit-anim-natural-h: 360px; }
-.skit-3d[data-scene="card"]    { --skit-anim-natural-h: 380px; }
+/* Per-scene natural-h must match the scene's actual visual envelope
+   (NOT the layout box of any single element). Wrapper height is
+   capped at natural × 1.4 so picking XL on a small-natural scene
+   doesn't leave the section empty. */
+.skit-3d[data-scene="counter"] { --skit-anim-natural-h: 220px; }
+.skit-3d[data-scene="stats"]   { --skit-anim-natural-h: 200px; }
+.skit-3d[data-scene="card"]    { --skit-anim-natural-h: 320px; }
 .skit-3d-stage {
   position: relative;
   width: 100%;
@@ -392,7 +396,12 @@
 .skit-3d-stats {
   position: relative;
   width: min(640px, 92%);
-  height: 280px;
+  /* Was 280px — but the badges (absolute, top:50%) visually only
+     fill ~140px after perspective compression so the rest was just
+     empty space leaking up to the section wrapper. Tightened to fit
+     the visual envelope; pair with --skit-anim-natural-h: 200px on
+     the wrapper so the section auto-fits without leftover gap. */
+  height: 200px;
   transform-style: preserve-3d;
 }
 .skit-3d-stats-platform {
