@@ -300,6 +300,16 @@
 .skit-3d[data-scene="counter"] { --skit-anim-natural-h: 220px; }
 .skit-3d[data-scene="stats"]   { --skit-anim-natural-h: 180px; }
 .skit-3d[data-scene="card"]    { --skit-anim-natural-h: 320px; }
+
+/* Card-specific scale cap. The Card scene has the widest visible
+   footprint (520px wide) plus rotateY/Z transforms — at the global
+   1.4× cap on dramatic tilt the projected width can extend past
+   the section's left/right edges into the editor chrome. Cap Card
+   tighter (1.15×) so the scene grows visibly with Height: L/XL but
+   never overflows the section. Counter + Stats keep the original cap. */
+.skit-3d[data-scene="card"] .skit-3d-stage {
+  transform: scale(clamp(0.6, calc(var(--skit-anim-h, 360px) / 320px), 1.15));
+}
 .skit-3d-stage {
   position: relative;
   width: 100%;
