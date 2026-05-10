@@ -274,10 +274,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Was overflow:hidden — clipped the card scene's soft drop-shadow at
-     the section bounds. Each scene caps its own footprint via the
-     stage's auto-scale so we don't need a hard clip. */
-  overflow: visible;
+  /* overflow-x clipped so a scaled-up scene at XL can't punch past
+     the section's right edge into the dark editor chrome. overflow-y
+     stays visible so the Card scene's soft drop-shadow halo isn't
+     cropped above/below. (Modern browsers honor split overflow axes;
+     overflow-clip keeps box-shadow rendering on the visible axis.) */
+  overflow-x: clip;
+  overflow-y: visible;
   color: var(--skit-3d-color, currentColor);
 }
 .skit-3d-stage {
@@ -291,10 +294,13 @@
   /* Auto-scale: shrink OR grow the scene to track the section height.
      --skit-anim-h is set inline by the kit from props.height_px;
      --skit-anim-natural-h defaults to 360px and each scene can override
-     it. clamp(0.6, ratio, 2) caps the scale so XL (~720px) reads as a
-     properly large hero without blowing up past the section's width. */
+     it. Cap growth at 1.4× — at ~640-720px wide native scene widths,
+     anything bigger spills past typical content widths. (Was 2×, but
+     XL Stats at 2× overflowed the section on real viewports.) Authors
+     who want a true monster hero can use Height: Custom and crank past
+     the cap, accepting the overflow. */
   --skit-anim-natural-h: 360px;
-  transform: scale(clamp(0.6, calc(var(--skit-anim-h, 360px) / var(--skit-anim-natural-h, 360px)), 2));
+  transform: scale(clamp(0.6, calc(var(--skit-anim-h, 360px) / var(--skit-anim-natural-h, 360px)), 1.4));
   transform-origin: center;
 }
 /* Per-scene natural heights (= the height at which the scene looks
