@@ -5,20 +5,26 @@ import type { InteractiveEffect } from "./types.js";
 
 // Interactive effect dispatcher. Hosts mount this once per page,
 // pass the chosen effect from content.customization.interactive_effect.
-// Each child component manages its own document-level event listeners
-// internally — there's no ambient animation, only response to user
-// pointer activity, which is why these don't bother reading.
+// Each child component manages its own pointer event listeners scoped
+// to the closest `.lp-root` ancestor — so the editor preview only
+// reacts to clicks inside the canvas, not the surrounding chrome.
+//
+// `color` accepts any CSS color string (#hex, rgb(), hsl(), etc.).
+// When omitted the components fall back to their built-in palette
+// (random hues for click-sparkle, purple for trail/spotlight).
 export function InteractiveEffectLayer({
   effect,
+  color,
 }: {
   effect: InteractiveEffect | undefined;
+  color?: string;
 }) {
   if (!effect || effect === "none") return null;
   return (
     <>
-      {effect === "click-sparkle" && <ClickSparkle />}
-      {effect === "cursor-trail" && <CursorTrail />}
-      {effect === "spotlight" && <Spotlight />}
+      {effect === "click-sparkle" && <ClickSparkle color={color} />}
+      {effect === "cursor-trail" && <CursorTrail color={color} />}
+      {effect === "spotlight" && <Spotlight color={color} />}
     </>
   );
 }
