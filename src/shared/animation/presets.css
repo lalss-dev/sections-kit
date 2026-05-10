@@ -432,15 +432,25 @@
 .skit-3d-stat-card-2:hover { transform: translateZ(35px) scale(1.04); box-shadow: 0 16px 40px color-mix(in srgb, var(--skit-3d-color, currentColor) 45%, transparent), inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 50%, transparent); }
 .skit-3d-stat-card-1:hover { transform: translateZ(65px) scale(1.04); box-shadow: 0 16px 40px color-mix(in srgb, var(--skit-3d-color, currentColor) 45%, transparent), inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 50%, transparent); }
 .skit-3d-stat-value {
+  /* inline-flex w/ align-items:baseline so the smaller affixes sit
+     ON the digits' baseline instead of floating up like superscript
+     (Bilal: "font offside"). justify-content:center keeps the row
+     centered within the card's text-align:center context. */
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
   font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
   font-weight: 800;
-  font-size: clamp(28px, 4vw, 40px);
+  font-size: clamp(26px, 3.5vw, 36px);
   line-height: 1;
   letter-spacing: -0.04em;
   color: var(--skit-3d-color, currentColor);
+  white-space: nowrap;
 }
 .skit-3d-stat-affix {
-  font-size: 0.55em;
+  font-size: 0.5em;
+  font-weight: 600;
   opacity: 0.85;
 }
 .skit-3d-stat-label {
