@@ -187,7 +187,22 @@ function ThreeDCounterScene({ props, interactive }: { props: AnimationProps; int
   );
 }
 
-// ---- 3D Stats ----
+// ---- 3D Stats (rewritten 2026-05-10) ----
+//
+// Old design: 3 absolute-positioned badges with per-card translateX/Y/Z
+// + rotateY(±18°), an implied dashed-ring "platform", parent rotateX(20°).
+// Problems:
+//   - cards "fanned" toward center, looked like they were spinning
+//     when the parent's cursor-tilt rotated the whole assembly
+//   - the platform foreshortened to a single dashed stripe at any
+//     angle and was never useful
+//   - empty space leaked because the absolute layout assumed a
+//     280px tall stage but the visible badges only filled ~140px
+//
+// New design: 3 flat-facing glass cards in a flexbox row with a
+// subtle Z-stagger (middle card forward 40px, sides 20px). No
+// per-card rotateY — when the parent tilts under cursor parallax,
+// the cards stay together as one plane instead of swinging.
 
 function ThreeDStatsScene({ props, interactive }: { props: AnimationProps; interactive: ThreeDInteractivity }) {
   const stats =
@@ -198,16 +213,14 @@ function ThreeDStatsScene({ props, interactive }: { props: AnimationProps; inter
           { value: 99, suffix: "%", label: "uptime" },
           { value: 24, suffix: "/7", label: "support" },
         ];
-  const positions = ["a", "b", "c"] as const;
   const tiltRef = React.useRef<HTMLDivElement | null>(null);
   useTilt(tiltRef, { intensity: interactive });
 
   return (
     <div ref={tiltRef} className="skit-3d-tilt skit-3d-stats-tilt" data-interactive={interactive !== "off" ? "" : undefined}>
       <div className="skit-3d-stats">
-        <span className="skit-3d-stats-platform" aria-hidden />
         {stats.map((s, i) => (
-          <div key={i} className={`skit-3d-stat-badge skit-3d-stat-badge-${positions[i]}`}>
+          <div key={i} className={`skit-3d-stat-card skit-3d-stat-card-${i}`}>
             <div className="skit-3d-stat-value">
               {s.prefix && <span className="skit-3d-stat-affix">{s.prefix}</span>}
               <span>{formatNumber(s.value ?? 0)}</span>

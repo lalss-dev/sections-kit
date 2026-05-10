@@ -298,7 +298,7 @@
    capped at natural × 1.4 so picking XL on a small-natural scene
    doesn't leave the section empty. */
 .skit-3d[data-scene="counter"] { --skit-anim-natural-h: 220px; }
-.skit-3d[data-scene="stats"]   { --skit-anim-natural-h: 200px; }
+.skit-3d[data-scene="stats"]   { --skit-anim-natural-h: 180px; }
 .skit-3d[data-scene="card"]    { --skit-anim-natural-h: 320px; }
 .skit-3d-stage {
   position: relative;
@@ -387,40 +387,29 @@
   text-transform: uppercase;
   opacity: 0.75;
 }
-/* ---- 3D STATS — 3 floating badges on a tilted plane ---- */
+/* ---- 3D STATS (rewritten 2026-05-10) — 3 flat-facing cards in a
+   flexbox row with subtle Z-stagger. No per-card rotateY so cursor
+   parallax tilts them as one plane instead of fanning. Tilt magnitude
+   dampened to 60% so even Dramatic feels controlled.  ---- */
 .skit-3d-stats-tilt {
   transform:
-    rotateX(calc(20deg + var(--skit-3d-tilt-x, 0deg)))
-    rotateY(var(--skit-3d-tilt-y, 0deg));
+    rotateX(calc(6deg + var(--skit-3d-tilt-x, 0deg) * 0.6))
+    rotateY(calc(var(--skit-3d-tilt-y, 0deg) * 0.6));
 }
 .skit-3d-stats {
-  position: relative;
-  width: min(640px, 92%);
-  /* Was 280px — but the badges (absolute, top:50%) visually only
-     fill ~140px after perspective compression so the rest was just
-     empty space leaking up to the section wrapper. Tightened to fit
-     the visual envelope; pair with --skit-anim-natural-h: 200px on
-     the wrapper so the section auto-fits without leftover gap. */
-  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: min(700px, 96%);
+  padding: 12px;
   transform-style: preserve-3d;
 }
-.skit-3d-stats-platform {
-  /* Removed entirely. Two passes (rotated dashed circle, then a tilted
-     ellipse) both rendered as a single dashed stripe on the parent's
-     20deg tilt because the visible aperture of the ring is so narrow
-     end-on. The 3 stat badges with their translateZ offsets already
-     read as a floating arrangement without needing the implied ground.
-     Selector kept so existing JSX renders nothing instead of crashing. */
-  display: none;
-}
-.skit-3d-stat-badge {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 180px;
-  margin: -64px 0 0 -90px;
-  padding: 18px 18px 16px;
-  border-radius: 18px;
+.skit-3d-stat-card {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 16px 14px 14px;
+  border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--skit-3d-color, currentColor) 35%, transparent);
   background:
     linear-gradient(180deg,
@@ -429,30 +418,23 @@
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow:
-    0 8px 28px color-mix(in srgb, var(--skit-3d-color, currentColor) 28%, transparent),
+    0 10px 28px color-mix(in srgb, var(--skit-3d-color, currentColor) 25%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 30%, transparent);
   text-align: center;
-  animation: skit-3d-stat-float 6.8s ease-in-out infinite;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s;
   transform-style: preserve-3d;
-  transition: box-shadow 0.3s, scale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.skit-3d-stat-badge:hover {
-  scale: 1.08;
-  box-shadow:
-    0 14px 42px color-mix(in srgb, var(--skit-3d-color, currentColor) 50%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 50%, transparent);
-}
-.skit-3d-stat-badge-a { transform: translateX(-220px) translateY(-30px) translateZ(40px) rotateY(18deg); animation-delay: 0s; }
-.skit-3d-stat-badge-b { transform: translateY(0)               translateZ(80px); animation-delay: -2.2s; }
-.skit-3d-stat-badge-c { transform: translateX(220px) translateY(-30px) translateZ(40px) rotateY(-18deg); animation-delay: -4.4s; }
-@keyframes skit-3d-stat-float {
-  0%, 100% { translate: 0 0;   }
-  50%      { translate: 0 -10px; }
-}
+/* Subtle Z-stagger: middle card forward, sides slightly back. */
+.skit-3d-stat-card-0 { transform: translateZ(15px); }
+.skit-3d-stat-card-1 { transform: translateZ(45px); }
+.skit-3d-stat-card-2 { transform: translateZ(15px); }
+.skit-3d-stat-card-0:hover,
+.skit-3d-stat-card-2:hover { transform: translateZ(35px) scale(1.04); box-shadow: 0 16px 40px color-mix(in srgb, var(--skit-3d-color, currentColor) 45%, transparent), inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 50%, transparent); }
+.skit-3d-stat-card-1:hover { transform: translateZ(65px) scale(1.04); box-shadow: 0 16px 40px color-mix(in srgb, var(--skit-3d-color, currentColor) 45%, transparent), inset 0 1px 0 color-mix(in srgb, var(--skit-3d-color, currentColor) 50%, transparent); }
 .skit-3d-stat-value {
   font-family: var(--lp-heading-font, var(--lpg-heading-font, system-ui));
   font-weight: 800;
-  font-size: 38px;
+  font-size: clamp(28px, 4vw, 40px);
   line-height: 1;
   letter-spacing: -0.04em;
   color: var(--skit-3d-color, currentColor);
