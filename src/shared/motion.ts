@@ -197,20 +197,28 @@ const INTENSITY_Y: Record<MotionIntensity, number> = {
   "normal": 14,
   "dramatic": 32,
 };
-// Duration map (speed controls how long animations take). The range is
-// intentionally wide (8x slow:fast) so the perceptual difference is
-// obvious on high-refresh-rate monitors where smooth animations feel
-// faster than they are. Slow = luxurious; fast = snappy.
+// Duration map. Each tier deliberately distinct in absolute terms,
+// not just ratio. Bilal feedback 2026-05-11: the old 8x ratio
+// (2000/750/250ms) read as "all kind of fast" — fast tier wasn't
+// snappy enough, normal wasn't deliberate enough, slow wasn't
+// cinematic. Re-tuned to:
+//   fast=60ms — near-instant, reads as a UI flick
+//   normal=1800ms — clearly deliberate animation the eye can read
+//   slow=6000ms — cinematic crawl
+// 100x ratio between fast and slow. CRM/PoS/Lakon link-page +
+// landing-page consumers each carried their own consumer-side
+// override (LPG_SPEED_DUR_MS / LND_SPEED_DUR_MS); fixing the
+// SOURCE means all 3 inherit the right values for free.
 const SPEED_MS: Record<MotionSpeed, number> = {
-  "slow": 2000,
-  "normal": 750,
-  "fast": 250,
+  "slow": 6000,
+  "normal": 1800,
+  "fast": 60,
 };
-// Stagger derived from speed.
+// Stagger derived from speed (per-section reveal delay multiplier).
 const SPEED_STAGGER: Record<MotionSpeed, number> = {
-  "slow": 280,
-  "normal": 100,
-  "fast": 30,
+  "slow": 700,
+  "normal": 240,
+  "fast": 8,
 };
 
 export function motionVars(
